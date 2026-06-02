@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,27 +17,13 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    const res = await login(email, password);
+    const res = await login(password);
     setLoading(false);
 
     if (res.success) {
       navigate('/dashboard');
     } else {
-      setError(res.message || 'Authentication failed. Please verify credentials.');
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setError('');
-    setLoading(true);
-    // Presetted demo email and password from seeding
-    const res = await login('demo@atr.com', 'password123');
-    setLoading(false);
-
-    if (res.success) {
-      navigate('/dashboard');
-    } else {
-      setError('Demo login failed. Make sure DB is running and seeded.');
+      setError(res.message || 'Invalid Passcode.');
     }
   };
 
@@ -63,7 +48,7 @@ const Login = () => {
             ATR Roadmap
           </h2>
           <p className="text-sm text-gray-400 mt-1.5">
-            Placement Preparation Roadmap Tracker • B.Tech IT
+            Academic & Technical Roadmap Tracker • tiruamballa
           </p>
         </div>
 
@@ -71,7 +56,7 @@ const Login = () => {
         <div className="rounded-2xl border border-white/10 bg-[#111827]/60 backdrop-blur-xl p-8 shadow-2xl glass-panel relative overflow-hidden">
           <h3 className="text-xl font-bold text-white mb-5 flex items-center">
             <ShieldCheck className="text-cyan-400 mr-2" size={20} />
-            Sign In to your account
+            Enter Access Passcode
           </h3>
 
           {error && (
@@ -81,34 +66,12 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email input */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                  <Mail size={16} />
-                </span>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@college.edu"
-                  className="w-full pl-10 glass-input"
-                />
-              </div>
-            </div>
-
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Password input */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Password
-                </label>
-              </div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Passcode
+              </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
                   <Lock size={16} />
@@ -118,8 +81,8 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 glass-input"
+                  placeholder="Enter passcode"
+                  className="w-full pl-10 glass-input text-center text-lg tracking-[0.2em] font-mono"
                 />
               </div>
             </div>
@@ -128,39 +91,17 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white font-bold text-sm shadow-lg shadow-cyan-500/10 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center space-x-2"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white font-bold text-sm shadow-lg shadow-cyan-500/10 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center space-x-2"
             >
-              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+              <span>{loading ? 'Verifying...' : 'Access Tracker'}</span>
               <ArrowRight size={16} />
             </button>
           </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/5"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#111827]/90 px-3 text-gray-500 font-semibold">Or Evaluate Quick</span>
-            </div>
-          </div>
-
-          {/* Fast Demo Login button */}
-          <button
-            onClick={handleDemoLogin}
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-500/40 text-cyan-400 font-bold text-sm shadow-inner transition-all cursor-pointer flex items-center justify-center space-x-2"
-          >
-            🚀 Launch Demo Account
-          </button>
         </div>
 
-        {/* Footer redirect */}
-        <p className="text-center text-xs text-gray-400 mt-6 select-none">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-cyan-400 hover:underline font-semibold">
-            Register for Free
-          </Link>
+        {/* Footer */}
+        <p className="text-center text-xs text-gray-500 mt-6 select-none">
+          Secured access for tiruamballa.
         </p>
       </motion.div>
     </div>

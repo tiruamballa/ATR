@@ -43,12 +43,12 @@ export const AuthProvider = ({ children }) => {
     bootstrapAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (password) => {
     setLoading(true);
     try {
       const data = await apiRequest('/auth/login', {
         method: 'POST',
-        body: { email, password },
+        body: { password },
       });
       if (data.success) {
         setLocalToken(data.accessToken);

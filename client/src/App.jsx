@@ -113,11 +113,7 @@ function App() {
           />
           <Route
             path="/register"
-            element={
-              <GuestRoute>
-                <Register />
-              </GuestRoute>
-            }
+            element={<Navigate to="/login" replace />}
           />
 
           {/* Core protected application shell */}

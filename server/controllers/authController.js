@@ -42,54 +42,10 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = async (req, res, next) => {
-  try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all details: name, email, password',
-      });
-    }
-
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already registered with this email',
-      });
-    }
-
-    // Create user
-    const user = await User.create({ name, email, password });
-
-    // Initialize daily tracker streak
-    await Streak.create({ userId: user._id });
-
-    // Initialize DSA topics (15 topics)
-    const dsaTopics = [
-      'Arrays', 'Strings', 'Hashing', 'Linked List', 'Stack', 'Queue',
-      'Trees', 'Graphs', 'Recursion & Backtracking', 'Dynamic Programming',
-      'Greedy', 'Heap', 'Tries', 'Bit Manipulation'
-    ];
-    await DSATopic.insertMany(
-      dsaTopics.map((topic) => ({ userId: user._id, topicName: topic }))
-    );
-
-    // Initialize Aptitude topics (8 topics)
-    const aptitudeTopics = [
-      'Percentages', 'Profit & Loss', 'Time & Work', 'Speed & Distance',
-      'Probability', 'Permutation & Combination', 'Number Series', 'Data Interpretation'
-    ];
-    await AptitudeTopic.insertMany(
-      aptitudeTopics.map((topic) => ({ userId: user._id, topicName: topic }))
-    );
-
-    sendTokenResponse(user, 201, res);
-  } catch (error) {
-    next(error);
-  }
+  return res.status(403).json({
+    success: false,
+    message: 'Registration is disabled. Only tiruamballa can access this platform.',
+  });
 };
 
 // @desc    Login user
@@ -97,31 +53,72 @@ exports.register = async (req, res, next) => {
 // @access  Public
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
 
-    if (!email || !password) {
+    if (!password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password',
+        message: 'Please provide the passcode',
       });
     }
 
-    // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    if (password !== '100207') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid passcode',
+      });
+    }
+
+    // Find the single user
+    let user = await User.findOne({ email: 'tiruamballa@atr.com' });
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
+      // Self-healing creation if not present in DB
+      user = await User.create({
+        name: 'tiruamballa',
+        email: 'tiruamballa@atr.com',
+        password: '100207',
+        leetcodeUsername: 'tiruamballa',
+        githubStats: {
+          repos: 12,
+          contributions: 145,
+          streak: 5,
+          projectsCount: 2,
+        },
+        resumes: [],
+        skillsProficiency: {
+          react: 60,
+          backend: 50,
+          sql: 55,
+          dbms: 50,
+          os: 40,
+          cn: 30,
+          oops: 45,
+          aptitude: 65,
+          mockInterviews: 1,
+        }
       });
-    }
 
-    // Check if password matches
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
+      // Initialize daily tracker streak
+      await Streak.create({ userId: user._id, currentStreak: 3, longestStreak: 7 });
+
+      // Initialize DSA topics (14 topics)
+      const dsaTopics = [
+        'Arrays', 'Strings', 'Hashing', 'Linked List', 'Stack', 'Queue',
+        'Trees', 'Graphs', 'Recursion & Backtracking', 'Dynamic Programming',
+        'Greedy', 'Heap', 'Tries', 'Bit Manipulation'
+      ];
+      await DSATopic.insertMany(
+        dsaTopics.map((topic) => ({ userId: user._id, topicName: topic }))
+      );
+
+      // Initialize Aptitude topics (8 topics)
+      const aptitudeTopics = [
+        'Percentages', 'Profit & Loss', 'Time & Work', 'Speed & Distance',
+        'Probability', 'Permutation & Combination', 'Number Series', 'Data Interpretation'
+      ];
+      await AptitudeTopic.insertMany(
+        aptitudeTopics.map((topic) => ({ userId: user._id, topicName: topic }))
+      );
     }
 
     sendTokenResponse(user, 200, res);

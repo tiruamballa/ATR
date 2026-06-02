@@ -728,14 +728,14 @@ const seedDatabase = async (options = { closeConnection: true }) => {
     // Delete non-custom tasks (only roadmap tasks, keeping custom ones intact)
     await Task.deleteMany({ isCustom: false });
 
-    console.log('Creating or finding demo user demo@atr.com...');
-    let demoUser = await User.findOne({ email: 'demo@atr.com' });
+    console.log('Creating or finding single user tiruamballa@atr.com...');
+    let demoUser = await User.findOne({ email: 'tiruamballa@atr.com' });
     if (!demoUser) {
       demoUser = await User.create({
-        name: 'Demo Student',
-        email: 'demo@atr.com',
-        password: 'password123',
-        leetcodeUsername: 'demostudent',
+        name: 'tiruamballa',
+        email: 'tiruamballa@atr.com',
+        password: '100207',
+        leetcodeUsername: 'tiruamballa',
         githubStats: {
           repos: 12,
           contributions: 145,
@@ -745,7 +745,7 @@ const seedDatabase = async (options = { closeConnection: true }) => {
         resumes: [
           {
             version: 'v1',
-            fileName: 'Resume_v1_Demo.pdf',
+            fileName: 'Resume_v1_Tiruamballa.pdf',
             fileUrl: 'https://example.com/resumes/v1.pdf',
             notes: 'Initial resume draft containing basics HTML/CSS projects.',
             date: new Date('2026-11-20'),
@@ -763,9 +763,9 @@ const seedDatabase = async (options = { closeConnection: true }) => {
           mockInterviews: 1,
         }
       });
-      console.log('Demo user demo@atr.com created successfully.');
+      console.log('Single user tiruamballa@atr.com created successfully.');
     } else {
-      console.log('Demo user already exists. Re-seeding tasks for this user.');
+      console.log('Single user already exists. Re-seeding tasks for this user.');
     }
 
     // Re-create demo streak if not existing
