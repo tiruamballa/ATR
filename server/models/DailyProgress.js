@@ -12,9 +12,11 @@ const DailyProgressSchema = new mongoose.Schema({
   },
   checklist: [
     {
-      label: { type: String, required: true }, // e.g. DSA, English, Aptitude, Development, AI Learning, Project Work
+      key: { type: String, required: true },
+      title: { type: String, required: true },
+      category: { type: String, required: true },
       completed: { type: Boolean, default: false },
-      detail: { type: String, default: '' }, // to show scheduled topic / activity
+      detail: { type: String, default: '' },
     }
   ],
   allCompleted: {

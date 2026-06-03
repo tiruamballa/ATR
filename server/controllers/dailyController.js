@@ -83,12 +83,12 @@ exports.getTodayChecklist = async (req, res, next) => {
       const topics = await getTodayTopics(req.user.id);
 
       const checklist = [
-        { label: 'DSA', detail: topics.dsa, completed: false },
-        { label: 'English', detail: topics.english, completed: false },
-        { label: 'Aptitude', detail: topics.aptitude, completed: false },
-        { label: 'Development', detail: 'Coding and full stack project work', completed: false },
-        { label: 'AI Learning', detail: 'LLM labs and AI engineering research', completed: false },
-        { label: 'Project Work', detail: 'Building and polishing portfolio projects', completed: false }
+        { key: 'dsa', title: 'DSA', category: 'DSA', detail: topics.dsa, completed: false },
+        { key: 'english', title: 'English', category: 'English', detail: topics.english, completed: false },
+        { key: 'aptitude', title: 'Aptitude', category: 'Aptitude', detail: topics.aptitude, completed: false },
+        { key: 'dev', title: 'Development', category: 'Development', detail: 'Coding and full stack project work', completed: false },
+        { key: 'github', title: 'GitHub', category: 'GitHub', detail: 'Commit code and push updates', completed: false },
+        { key: 'hours', title: 'Study Hours', category: 'Study Hours', detail: 'Log 6 target hours of continuous study', completed: false }
       ];
 
       progress = await DailyProgress.create({
@@ -120,13 +120,13 @@ exports.getTodayChecklist = async (req, res, next) => {
 // @access  Private
 exports.toggleChecklistItem = async (req, res, next) => {
   try {
-    const { label, completed } = req.body;
+    const { itemKey } = req.body;
     const dateStr = getDateString();
 
-    if (!label) {
+    if (!itemKey) {
       return res.status(400).json({
         success: false,
-        message: 'Please specify the item label to toggle',
+        message: 'Please specify the itemKey to toggle',
       });
     }
 
@@ -139,14 +139,14 @@ exports.toggleChecklistItem = async (req, res, next) => {
     }
 
     // Find the item and update status
-    const item = progress.checklist.find(i => i.label === label);
+    const item = progress.checklist.find(i => i.key === itemKey);
     if (!item) {
       return res.status(400).json({
         success: false,
         message: 'Checklist item not found',
       });
     }
-    item.completed = completed;
+    item.completed = !item.completed;
 
     // Check if all are now completed
     const wasAllCompleted = progress.allCompleted;
@@ -180,11 +180,8 @@ exports.toggleChecklistItem = async (req, res, next) => {
       }
     } else if (!isNowAllCompleted && wasAllCompleted) {
       // User unchecked an item after completing everything today
-      // Decrease streak if it was updated today
       if (streakObj.lastCompletedDate === dateStr) {
         streakObj.currentStreak = Math.max(0, streakObj.currentStreak - 1);
-        // Find previous completed date to revert (we don't track history, so set to null/yesterday is fine)
-        // Simply resetting lastCompletedDate to null or yesterday
         streakObj.lastCompletedDate = null;
         await streakObj.save();
       }
