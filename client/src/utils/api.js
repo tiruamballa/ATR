@@ -27,7 +27,11 @@ export const getAuthHeaders = () => {
 
 // Standard Fetch Wrapper helper for simpler networking
 export const apiRequest = async (endpoint, options = {}) => {
-  const cleanBaseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  let cleanBaseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  // Automatically append /api if it is missing
+  if (!cleanBaseUrl.toLowerCase().endsWith('/api')) {
+    cleanBaseUrl = `${cleanBaseUrl}/api`;
+  }
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${cleanBaseUrl}${cleanEndpoint}`;
   
