@@ -25,14 +25,26 @@ connectDB().then(async () => {
 
 const app = express();
 
-// CORS configurations
-let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-if (frontendUrl.endsWith('/')) {
-  frontendUrl = frontendUrl.slice(0, -1);
-}
-
+// Dynamic CORS configurations to support Vercel deployments automatically
 const corsOptions = {
-  origin: frontendUrl,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, postman, or curl)
+    if (!origin) return callback(null, true);
+
+    const cleanFrontendUrl = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
+
+    // Allow localhost, the specified FRONTEND_URL, or any Vercel domain
+    if (
+      origin === cleanFrontendUrl ||
+      origin.startsWith('http://localhost') ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('vercel.app')
+    ) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
