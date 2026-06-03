@@ -6,10 +6,10 @@ const jwt = require('jsonwebtoken');
 
 // Helper to generate tokens and respond with cookies
 const sendTokenResponse = (user, statusCode, res) => {
-  const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+  const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'supersecretaccesstokenkey123!', {
     expiresIn: '15m',
   });
-  const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, {
+  const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || 'supersecretrefreshtokenkey456!', {
     expiresIn: '7d',
   });
 
@@ -142,7 +142,7 @@ exports.refresh = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'supersecretrefreshtokenkey456!');
 
     // Get user
     const user = await User.findById(decoded.id);
@@ -153,7 +153,7 @@ exports.refresh = async (req, res, next) => {
       });
     }
 
-    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'supersecretaccesstokenkey123!', {
       expiresIn: '15m',
     });
 

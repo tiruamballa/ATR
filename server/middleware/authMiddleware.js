@@ -22,7 +22,7 @@ const protect = async (req, res, next) => {
 
   try {
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretaccesstokenkey123!');
 
     // Find the user
     req.user = await User.findById(decoded.id);
