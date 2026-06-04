@@ -1,42 +1,38 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const XPBar = ({ label, current, max, level, color = '#00F5D4' }) => {
+const XPBar = ({ label, current, max, color = '#22D3EE' }) => {
   const percentage = Math.max(0, Math.min((current / max) * 100, 100));
 
   return (
-    <div className="mb-4">
-      {/* Label and Level details */}
+    <div className="mb-4 last:mb-0">
+      {/* Label and Percentage */}
       <div className="flex justify-between items-center mb-1.5">
-        <span className="font-body text-sm font-medium text-slate-400">
+        <span className="font-body text-xs font-semibold text-slate-300">
           {label}
         </span>
-        <span
-          className="font-display text-[10px] font-semibold tracking-wider"
-          style={{ color }}
-        >
-          LVL {level}
+        <span className="font-mono text-xs font-semibold text-slate-300">
+          {Math.round(percentage)}%
         </span>
       </div>
 
       {/* Progress Track */}
-      <div className="w-full bg-slate-900 border border-white/5 rounded-md h-2.5 overflow-hidden">
+      <div className="w-full bg-slate-900 border border-white/5 rounded-full h-2 overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
-          transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ duration: 1, ease: 'easeOut' }}
           style={{
             height: '100%',
-            borderRadius: '4px',
-            background: `linear-gradient(90deg, ${color}, ${color}88)`,
-            boxShadow: `0 0 10px ${color}66`,
+            borderRadius: '9999px',
+            background: color,
           }}
         />
       </div>
 
-      {/* Numerical Progress details */}
-      <div className="font-mono text-[10px] text-slate-500 mt-1">
-        {current} / {max} XP ({Math.round(percentage)}%)
+      {/* Numerical Details */}
+      <div className="font-mono text-[9px] text-slate-500 mt-1 uppercase tracking-wider">
+        {current} / {max} Completed
       </div>
     </div>
   );

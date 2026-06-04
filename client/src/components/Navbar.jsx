@@ -11,6 +11,7 @@ const Navbar = ({ toggleSidebar }) => {
     '/dashboard': 'MISSION CONTROL',
     '/calendar': 'JOURNEY MAP TIMELINE',
     '/tasks': 'QUEST LOG BOARD',
+    '/attendance': 'ATTENDANCE CONTROL ENGINE',
     '/dsa': 'DSA SKILL TREE',
     '/english': 'COMMS TRAINING MODULE',
     '/aptitude': 'QUANTITATIVE LABS',

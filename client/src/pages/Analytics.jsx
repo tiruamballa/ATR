@@ -200,7 +200,7 @@ const Analytics = () => {
                   labelStyle={{ color: '#fff', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}
                   itemStyle={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}
                 />
-                <Bar dataKey="completed" name="Completed Tasks" fill="#00F5D4" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="completed" name="Completed Tasks" fill="#22D3EE" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="total" name="Total Tasks" fill="rgba(255,255,255,0.05)" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -223,7 +223,7 @@ const Analytics = () => {
                   labelStyle={{ color: '#fff', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}
                   itemStyle={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}
                 />
-                <Line type="monotone" dataKey="percentage" name="Completion Rate (%)" stroke="#7B61FF" strokeWidth={2} dot={{ fill: '#7B61FF', strokeWidth: 1.5 }} />
+                <Line type="monotone" dataKey="percentage" name="Completion Rate (%)" stroke="#8B5CF6" strokeWidth={2} dot={{ fill: '#8B5CF6', strokeWidth: 1.5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -241,7 +241,7 @@ const Analytics = () => {
                 <PolarGrid stroke="rgba(255,255,255,0.05)" />
                 <PolarAngleAxis dataKey="category" stroke="#94a3b8" fontSize={9} fontFamily="var(--font-mono)" />
                 <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#475569" fontSize={8} fontFamily="var(--font-mono)" />
-                <Radar name="Completion Rate" dataKey="percentage" stroke="#00F5D4" fill="#00F5D4" fillOpacity={0.2} />
+                <Radar name="Completion Rate" dataKey="percentage" stroke="#22D3EE" fill="#22D3EE" fillOpacity={0.2} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
@@ -258,8 +258,8 @@ const Analytics = () => {
               <AreaChart data={data?.studyLogs || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorActual2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FACC15" stopOpacity={0.25}/>
-                    <stop offset="95%" stopColor="#FACC15" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="date" stroke="#475569" fontSize={8} tickLine={false} fontFamily="var(--font-mono)" />
@@ -269,8 +269,8 @@ const Analytics = () => {
                   labelStyle={{ color: '#fff', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}
                   itemStyle={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}
                 />
-                <Area type="monotone" dataKey="actual" name="Logged Hours" stroke="#FACC15" strokeWidth={2} fillOpacity={1} fill="url(#colorActual2)" />
-                <Area type="monotone" dataKey="target" name="Target Hours" stroke="#7B61FF" strokeDasharray="3 3" strokeWidth={1} fill="none" />
+                <Area type="monotone" dataKey="actual" name="Logged Hours" stroke="#F59E0B" strokeWidth={2} fillOpacity={1} fill="url(#colorActual2)" />
+                <Area type="monotone" dataKey="target" name="Target Hours" stroke="#8B5CF6" strokeDasharray="3 3" strokeWidth={1} fill="none" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

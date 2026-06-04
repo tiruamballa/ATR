@@ -249,7 +249,7 @@ const Resources = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-xs text-slate-500 italic font-mono uppercase tracking-wider">No YouTube tutorials linked.</div>
+                  <div className="text-center py-8 text-xs text-slate-500 italic font-mono uppercase tracking-wider">Resources will appear here</div>
                 )}
               </div>
             </div>
@@ -317,7 +317,7 @@ const Resources = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-xs text-slate-500 italic font-mono uppercase tracking-wider">No document links configured.</div>
+                  <div className="text-center py-8 text-xs text-slate-500 italic font-mono uppercase tracking-wider">Resources will appear here</div>
                 )}
               </div>
             </div>

@@ -87,7 +87,7 @@ const Daily = () => {
             particleCount: 150,
             spread: 80,
             origin: { y: 0.6 },
-            colors: ['#00F5D4', '#7B61FF', '#FACC15', '#F472B6'],
+            colors: ['#22D3EE', '#8B5CF6', '#F59E0B', '#EC4899'],
           });
         }
       }

@@ -172,7 +172,7 @@ const Settings = () => {
           particleCount: 150,
           spread: 80,
           origin: { y: 0.6 },
-          colors: ['#FF6B6B', '#7B61FF', '#00F5D4'],
+          colors: ['#EF4444', '#8B5CF6', '#22D3EE'],
         });
       }
     } catch (err) {

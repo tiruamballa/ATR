@@ -10,18 +10,22 @@ const XPFloat = ({ amount, x, y, onComplete }) => {
         top: y,
         pointerEvents: 'none',
         zIndex: 9999,
-        fontFamily: 'var(--font-display)',
-        fontWeight: 900,
-        fontSize: '20px',
-        color: '#FACC15', // var(--yellow)
-        textShadow: '0 0 20px rgba(250, 204, 21, 0.8)',
+        fontFamily: 'var(--font-body)',
+        fontWeight: 600,
+        fontSize: '12px',
+        color: '#22D3EE',
+        padding: '4px 8px',
+        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+        border: '1px solid rgba(34, 211, 238, 0.25)',
+        borderRadius: '6px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
       }}
-      initial={{ opacity: 1, y: 0 }}
-      animate={{ opacity: 0, y: -70 }}
-      transition={{ duration: 1.1, ease: 'easeOut' }}
+      initial={{ opacity: 1, y: 0, scale: 0.95 }}
+      animate={{ opacity: 0, y: -30, scale: 1 }}
+      transition={{ duration: 0.7, ease: 'easeOut' }}
       onAnimationComplete={onComplete}
     >
-      +{amount} XP ⚡
+      Saved
     </motion.div>
   );
 };

@@ -62,7 +62,7 @@ const DSA = () => {
             particleCount: 100,
             spread: 70,
             origin: { y: 0.8 },
-            colors: ['#00F5D4', '#7B61FF', '#FACC15'],
+            colors: ['#22D3EE', '#8B5CF6', '#F59E0B'],
           });
         }
       }
@@ -109,7 +109,7 @@ const DSA = () => {
           particleCount: 150,
           spread: 80,
           origin: { y: 0.6 },
-          colors: ['#00F5D4', '#7B61FF', '#FACC15'],
+          colors: ['#22D3EE', '#8B5CF6', '#F59E0B'],
         });
       }
     } catch (err) {
@@ -134,9 +134,9 @@ const DSA = () => {
 
   // Determine category color based on index
   const getTopicColor = (index) => {
-    if (index < 5) return '#00F5D4'; // Basic -> Cyan
-    if (index < 10) return '#7B61FF'; // Intermediate -> Purple
-    return '#F472B6'; // Advanced -> Pink
+    if (index < 5) return '#22D3EE'; // Basic -> Cyan
+    if (index < 10) return '#8B5CF6'; // Intermediate -> Purple
+    return '#EC4899'; // Advanced -> Pink
   };
 
   return (
@@ -311,8 +311,8 @@ const DSA = () => {
                       className="h-full rounded-full transition-all duration-300"
                       style={{
                         width: `${Math.min(100, percent)}%`,
-                        backgroundColor: isDone ? '#00F5D4' : topicColor,
-                        boxShadow: `0 0 8px ${isDone ? '#00F5D4' : topicColor}`
+                        backgroundColor: isDone ? '#22D3EE' : topicColor,
+                        boxShadow: `0 0 8px ${isDone ? '#22D3EE' : topicColor}`
                       }}
                     />
                   </div>

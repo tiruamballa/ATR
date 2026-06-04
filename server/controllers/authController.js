@@ -77,29 +77,29 @@ exports.login = async (req, res, next) => {
         name: 'tiruamballa',
         email: 'tiruamballa@atr.com',
         password: '100207',
-        leetcodeUsername: 'tiruamballa',
+        leetcodeUsername: '',
         githubStats: {
-          repos: 12,
-          contributions: 145,
-          streak: 5,
-          projectsCount: 2,
+          repos: 0,
+          contributions: 0,
+          streak: 0,
+          projectsCount: 0,
         },
         resumes: [],
         skillsProficiency: {
-          react: 60,
-          backend: 50,
-          sql: 55,
-          dbms: 50,
-          os: 40,
-          cn: 30,
-          oops: 45,
-          aptitude: 65,
-          mockInterviews: 1,
+          react: 0,
+          backend: 0,
+          sql: 0,
+          dbms: 0,
+          os: 0,
+          cn: 0,
+          oops: 0,
+          aptitude: 0,
+          mockInterviews: 0,
         }
       });
 
       // Initialize daily tracker streak
-      await Streak.create({ userId: user._id, currentStreak: 3, longestStreak: 7 });
+      await Streak.create({ userId: user._id, currentStreak: 0, longestStreak: 0 });
 
       // Initialize DSA topics (14 topics)
       const dsaTopics = [

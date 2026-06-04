@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 
 const CyberButton = ({ children, variant = 'cyan', onClick, className = '', disabled = false, type = 'button' }) => {
   const colors = {
-    cyan: ['#00F5D4', '#0B0F19'],
-    purple: ['#7B61FF', '#FFFFFF'],
-    red: ['#FF6B6B', '#FFFFFF'],
-    yellow: ['#FACC15', '#0B0F19'],
-    pink: ['#F472B6', '#FFFFFF'],
-    orange: ['#F97316', '#0B0F19']
+    cyan: ['#22D3EE', '#0B0F14'],
+    purple: ['#8B5CF6', '#FFFFFF'],
+    red: ['#EF4444', '#FFFFFF'],
+    yellow: ['#F59E0B', '#0B0F14'],
+    pink: ['#EC4899', '#FFFFFF'],
+    orange: ['#F97316', '#0B0F14']
   };
 
   const [buttonColor, textColor] = colors[variant] || colors['cyan'];

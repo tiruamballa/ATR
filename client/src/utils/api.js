@@ -5,17 +5,9 @@ let localAccessToken = '';
 
 export const setLocalToken = (token) => {
   localAccessToken = token;
-  if (token) {
-    localStorage.setItem('accessToken', token);
-  } else {
-    localStorage.removeItem('accessToken');
-  }
 };
 
 export const getLocalToken = () => {
-  if (!localAccessToken) {
-    localAccessToken = localStorage.getItem('accessToken') || '';
-  }
   return localAccessToken;
 };
 

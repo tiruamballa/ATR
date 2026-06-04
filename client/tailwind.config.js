@@ -8,27 +8,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        void: '#0B0F19',
+        void: '#0B0F14',
         surface: '#111827',
-        card: '#151D2F',
+        card: '#151B26',
         cyber: {
-          cyan: '#00F5D4',
-          purple: '#7B61FF',
-          red: '#FF6B6B',
-          yellow: '#FACC15',
-          pink: '#F472B6',
+          cyan: '#22D3EE',
+          purple: '#8B5CF6',
+          red: '#EF4444',
+          yellow: '#F59E0B',
+          pink: '#8B5CF6',
+          success: '#22C55E'
         }
       },
       fontFamily: {
-        display: ['Orbitron', 'sans-serif'],
-        body:    ['Space Grotesk', 'sans-serif'],
+        display: ['Plus Jakarta Sans', 'sans-serif'],
+        body:    ['Inter', 'sans-serif'],
         mono:    ['JetBrains Mono', 'monospace'],
       },
       boxShadow: {
-        'cyan':   '0 0 20px rgba(0,245,212,0.35)',
-        'purple': '0 0 20px rgba(123,97,255,0.35)',
-        'red':    '0 0 20px rgba(255,107,107,0.5)',
-        'yellow': '0 0 20px rgba(250,204,21,0.4)',
+        'cyan':   '0 4px 20px -2px rgba(0, 0, 0, 0.4)',
+        'purple': '0 4px 20px -2px rgba(0, 0, 0, 0.4)',
+        'red':    '0 4px 20px -2px rgba(0, 0, 0, 0.4)',
+        'yellow': '0 4px 20px -2px rgba(0, 0, 0, 0.4)',
       },
       animation: {
         'float':      'float 4s ease-in-out infinite',

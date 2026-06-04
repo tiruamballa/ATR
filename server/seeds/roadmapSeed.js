@@ -6,6 +6,9 @@ const Task = require('../models/Task');
 const Streak = require('../models/Streak');
 const DSATopic = require('../models/DSATopic');
 const AptitudeTopic = require('../models/AptitudeTopic');
+const DailyProgress = require('../models/DailyProgress');
+const EnglishProgress = require('../models/EnglishProgress');
+const Analytics = require('../models/Analytics');
 
 dotenv.config();
 
@@ -735,44 +738,63 @@ const seedDatabase = async (options = { closeConnection: true }) => {
         name: 'tiruamballa',
         email: 'tiruamballa@atr.com',
         password: '100207',
-        leetcodeUsername: 'tiruamballa',
+        leetcodeUsername: '',
         githubStats: {
-          repos: 12,
-          contributions: 145,
-          streak: 5,
-          projectsCount: 2,
+          repos: 0,
+          contributions: 0,
+          streak: 0,
+          projectsCount: 0,
         },
-        resumes: [
-          {
-            version: 'v1',
-            fileName: 'Resume_v1_Tiruamballa.pdf',
-            fileUrl: 'https://example.com/resumes/v1.pdf',
-            notes: 'Initial resume draft containing basics HTML/CSS projects.',
-            date: new Date('2026-11-20'),
-          }
-        ],
+        resumes: [],
         skillsProficiency: {
-          react: 60,
-          backend: 50,
-          sql: 55,
-          dbms: 50,
-          os: 40,
-          cn: 30,
-          oops: 45,
-          aptitude: 65,
-          mockInterviews: 1,
+          react: 0,
+          backend: 0,
+          sql: 0,
+          dbms: 0,
+          os: 0,
+          cn: 0,
+          oops: 0,
+          aptitude: 0,
+          mockInterviews: 0,
         }
       });
       console.log('Single user tiruamballa@atr.com created successfully.');
     } else {
-      console.log('Single user already exists. Re-seeding tasks for this user.');
+      console.log('Single user already exists. Resetting stats for this user.');
+      demoUser.githubStats = {
+        repos: 0,
+        contributions: 0,
+        streak: 0,
+        projectsCount: 0,
+      };
+      demoUser.skillsProficiency = {
+        react: 0,
+        backend: 0,
+        sql: 0,
+        dbms: 0,
+        os: 0,
+        cn: 0,
+        oops: 0,
+        aptitude: 0,
+        mockInterviews: 0,
+      };
+      demoUser.resumes = [];
+      demoUser.leetcodeUsername = '';
+      await demoUser.save();
     }
 
-    // Re-create demo streak if not existing
-    const hasStreak = await Streak.findOne({ userId: demoUser._id });
-    if (!hasStreak) {
-      await Streak.create({ userId: demoUser._id, currentStreak: 3, longestStreak: 7 });
-    }
+    // Re-create/Reset streak to 0
+    await Streak.deleteMany({ userId: demoUser._id });
+    await Streak.create({ userId: demoUser._id, currentStreak: 0, longestStreak: 0 });
+
+    // Clear user history logs
+    await DailyProgress.deleteMany({ userId: demoUser._id });
+    await EnglishProgress.deleteMany({ userId: demoUser._id });
+    await Analytics.deleteMany({ userId: demoUser._id });
+
+    // Reset topic achievements
+    await DSATopic.updateMany({ userId: demoUser._id }, { $set: { solvedQuestions: 0 } });
+    await AptitudeTopic.updateMany({ userId: demoUser._id }, { $set: { attempted: 0, accuracy: 0 } });
 
     console.log('Seeding 18 Phase documents...');
     const insertedPhases = [];
@@ -849,13 +871,7 @@ const seedDatabase = async (options = { closeConnection: true }) => {
       }
     }
 
-    // Set some tasks of monthIndex 0 as completed for demo user so we show progress!
-    const demoTasksToComplete = await Task.find({ userId: demoUser._id }).limit(10);
-    for (const t of demoTasksToComplete) {
-      t.status = 'Completed';
-      t.progress = 100;
-      await t.save();
-    }
+    // All tasks remain Pending initially for clean start.
 
     console.log(`Successfully seeded ${totalTasksSeeded} weekly tasks.`);
     console.log('Seeding complete! Database ready.');

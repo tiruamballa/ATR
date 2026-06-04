@@ -66,6 +66,7 @@ app.use('/api/aptitude', require('./routes/aptitude'));
 app.use('/api/resources', require('./routes/resources'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/profile', require('./routes/profile'));
+app.use('/api/attendance', require('./routes/attendance'));
 
 // Fallback for undefined routes
 app.use('*', (req, res, next) => {

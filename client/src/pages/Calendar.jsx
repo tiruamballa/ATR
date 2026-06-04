@@ -10,7 +10,6 @@ import {
   ArrowRightLeft,
   Trash2
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import TiltCard from '../components/TiltCard';
 import CyberButton from '../components/CyberButton';
 import XPBar from '../components/XPBar';
@@ -26,6 +25,10 @@ const Calendar = () => {
   const [activeTask, setActiveTask] = useState(null);
   const [targetPhaseId, setTargetPhaseId] = useState('');
   const [targetWeekNum, setTargetWeekNum] = useState(1);
+
+  // Selector and Toggle States
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [weeksOpen, setWeeksOpen] = useState(false);
 
   const fetchPhasesAndTasks = async () => {
     try {
@@ -83,6 +86,7 @@ const Calendar = () => {
   const handlePhaseSelect = async (phase) => {
     setSelectedPhase(phase);
     await fetchTasks(phase._id);
+    setWeeksOpen(false); // Hide weeks initially on change to match Month Card workflow
   };
 
   // Toggle task completion
@@ -198,251 +202,298 @@ const Calendar = () => {
     return acc;
   }, {});
 
+  // Dynamic Skill Focus mapper
+  const getPhaseMeta = (phase) => {
+    if (!phase) return { focus: '', topics: '' };
+    const name = phase.name.toLowerCase();
+    if (name.includes('ignition')) {
+      return { focus: 'Frontend Foundations', topics: 'HTML, CSS, JavaScript, Git' };
+    } else if (name.includes('reactor')) {
+      return { focus: 'React Engineering', topics: 'React Core, State, Hooks, SQL Relational DBs' };
+    } else if (name.includes('backend')) {
+      return { focus: 'Backend Architecture', topics: 'NodeJS, Express, REST APIs, MongoDB' };
+    } else if (name.includes('launchpad')) {
+      return { focus: 'AI & LLM Integration', topics: 'OpenAI APIs, Vector Embeddings, RAG, LangChain' };
+    } else if (name.includes('quest')) {
+      return { focus: 'Data Analytics', topics: 'Python, Pandas, Seaborn plots, Model APIs' };
+    } else if (name.includes('foundations')) {
+      return { focus: 'Software Engineering', topics: 'OOPs Java, SOLID Principles, System Architecture' };
+    } else if (name.includes('infrastructure')) {
+      return { focus: 'OS & Docker Networking', topics: 'Processes & Threads, TCP/UDP, Containers' };
+    } else if (name.includes('arena')) {
+      return { focus: 'Mock Assessments & Cloud', topics: 'AWS, Jest Unit Testing, Mock Placements' };
+    } else if (name.includes('sprint')) {
+      return { focus: 'Placement Season Ready', topics: 'Mock Interviews, Dynamic Programming' };
+    } else {
+      return { focus: phase.primarySkill, topics: phase.goal.split('.')[0] };
+    }
+  };
+
+  // Dynamic Week names generator based on phase topics
+  const getWeekName = (phaseName, weekNum) => {
+    const name = (phaseName || '').toLowerCase();
+    const weekNames = {
+      ignition: ['Foundation Forge', 'UI Builder', 'Responsive Mastery', 'Mini Project Sprint'],
+      reactor: ['Component Core', 'State Mastery', 'Hooks Laboratory', 'React Sprint'],
+      backend: ['API Forge', 'Express Engine', 'Database Bridge', 'Backend Sprint'],
+      launchpad: ['Token Foundations', 'Prompt Studio', 'RAG Mission', 'AI Builder'],
+      quest: ['Pandas Lab', 'Visualizations', 'AI Model Integration', 'Analytics Project'],
+      foundations: ['OOPs Java', 'SOLID Design', 'Network Basics', 'HLD Routers'],
+      infrastructure: ['OS Processes', 'TCP/UDP Layers', 'Docker Containers', 'Network Security'],
+      arena: ['Cloud Services', 'Jest Component Testing', 'Complexities Study', 'Technical Mocks'],
+      sprint: ['Interview Prep', 'Alumni Mocks', 'UI Framer Motion', 'Placement Rounds']
+    };
+
+    const matchedKey = Object.keys(weekNames).find(key => name.includes(key));
+    if (matchedKey && weekNames[matchedKey][weekNum - 1]) {
+      return weekNames[matchedKey][weekNum - 1];
+    }
+    
+    const focusWord = phaseName ? phaseName.split(' ')[0] : 'Skill';
+    const defaults = [
+      `${focusWord} Foundations`,
+      `${focusWord} Core Lab`,
+      `${focusWord} Advanced Patterns`,
+      `${focusWord} Capstone Sprint`
+    ];
+    return defaults[weekNum - 1];
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
       
-      {/* ── TWO COLUMN TIMELINE AND WEEK TASK SHEETS */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_2.4fr] gap-8">
-        
-        {/* Left Column: Vertical Chronological Journey Map */}
-        <div className="space-y-6">
-          <div className="font-display text-[10px] text-slate-500 tracking-[0.25em] mb-4 uppercase">
-            ░░ JOURNEY TIMELINE ░░
+      {/* Selector Header Bar with Lucide Icon */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+        <div>
+          <div className="font-display text-[10px] text-slate-500 tracking-[0.2em] uppercase mb-1">
+            Roadmap Timeline
           </div>
-
-          {Object.keys(phasesByYear).sort().map((year) => (
-            <div key={year} className="space-y-4">
-              {/* Year Timeline Separator */}
-              <div className="font-display text-[11px] font-bold tracking-[0.3em] text-slate-500 border-b border-white/5 pb-2 mb-4">
-                {year} ──────────────────────
-              </div>
-
-              <div className="space-y-4 pl-2">
-                {phasesByYear[year].map((phase, idx) => {
-                  const isSelected = selectedPhase?._id === phase._id;
-                  const isLast = idx === phasesByYear[year].length - 1;
-                  
-                  // Phase status mappings based on estimated hours/index
-                  let status = 'locked';
-                  if (phase.completionPercentage >= 100) status = 'complete';
-                  else if (phase.completionPercentage > 0 || isSelected) status = 'active';
-
-                  return (
-                    <div key={phase._id} className="flex gap-4 items-stretch select-none">
-                      {/* Timeline dot and dynamic line */}
-                      <div className="flex flex-col items-center pt-2.5">
-                        <div
-                          className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-300 ${
-                            status === 'complete'
-                              ? 'bg-cyber-cyan border-cyber-cyan shadow-[0_0_10px_#00F5D4]'
-                              : status === 'active'
-                              ? 'bg-cyber-yellow border-cyber-yellow animate-glow-pulse'
-                              : 'bg-slate-800 border-slate-700'
-                          }`}
-                        />
-                        {!isLast && <div className="w-[1.5px] flex-1 bg-white/5 mt-2.5 min-h-[40px]" />}
-                      </div>
-
-                      {/* Phase Card Trigger */}
-                      <div className="flex-1 pb-4">
-                        <TiltCard>
-                          <div
-                            onClick={() => handlePhaseSelect(phase)}
-                            className={`cyber-card cursor-pointer p-4 transition-all duration-300 select-none ${
-                              isSelected
-                                ? 'border-cyber-cyan/40 bg-cyber-cyan/5'
-                                : 'hover:border-white/10'
-                            }`}
-                            style={isSelected ? { boxShadow: 'var(--glow-cyan)' } : {}}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-display font-extrabold text-xs text-cyber-cyan tracking-wider">
-                                {phase.name.toUpperCase()}
-                              </span>
-                              <span className="font-mono text-[9px] text-slate-500 uppercase tracking-widest">
-                                {phase.monthName.slice(0, 3)}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-400 font-body leading-relaxed line-clamp-2">
-                              {phase.goal}
-                            </p>
-                          </div>
-                        </TiltCard>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+          <h1 className="text-2xl font-black font-display text-white tracking-widest">
+            JOURNEY SCHEDULE
+          </h1>
         </div>
 
-        {/* Right Column: Selected Phase Detail & 4-Week Grid Sheet */}
-        <div className="space-y-6">
+        {/* Dropdown selector */}
+        <div className="relative inline-block text-left">
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center space-x-2.5 px-4 py-2.5 rounded-lg border border-white/10 hover:border-cyber-cyan bg-white/5 hover:bg-cyber-cyan/5 text-white font-mono text-xs tracking-wider transition-all duration-200 cursor-pointer"
+          >
+            <CalendarIcon size={14} className="text-cyber-cyan" />
+            <span className="font-display font-semibold uppercase tracking-wider">
+              {selectedPhase ? `${selectedPhase.name} (${selectedPhase.monthName} ${selectedPhase.year})` : 'Select Month'}
+            </span>
+            <span className="text-[10px] text-slate-500 ml-1">▼</span>
+          </button>
           
-          {/* Selected Phase Info Header HUD */}
-          {selectedPhase && (
-            <div className="cyber-card relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-cyan/5 rounded-full blur-[80px]" />
-              
-              <div className="space-y-2 relative z-10 flex-1">
-                <div className="flex items-center space-x-2.5">
-                  <span className="p-2 rounded-xl bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/20">
-                    <CalendarIcon size={18} />
-                  </span>
-                  <div>
-                    <h2 className="font-display font-extrabold text-lg text-white tracking-wide uppercase">
-                      {selectedPhase.name}
-                    </h2>
-                    <p className="text-[10px] font-mono text-cyber-cyan font-semibold tracking-wider">
-                      {selectedPhase.monthName.toUpperCase()} {selectedPhase.year}
-                    </p>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-80 rounded-xl border border-white/10 bg-[#111827] p-4.5 shadow-2xl z-30 max-h-[350px] overflow-y-auto">
+              {Object.keys(phasesByYear).sort().map((year) => (
+                <div key={year} className="mb-3.5 last:mb-0">
+                  <div className="text-[9px] font-bold tracking-[0.2em] text-slate-500 border-b border-white/5 pb-1 mb-2 font-mono">
+                    {year}
+                  </div>
+                  <div className="space-y-1">
+                    {phasesByYear[year].map((phase) => {
+                      const isSelected = selectedPhase?._id === phase._id;
+                      return (
+                        <div
+                          key={phase._id}
+                          onClick={() => {
+                            handlePhaseSelect(phase);
+                            setDropdownOpen(false);
+                          }}
+                          className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 ${
+                            isSelected
+                              ? 'bg-cyber-cyan/15 border border-cyber-cyan/35 text-cyber-cyan'
+                              : 'hover:bg-white/5 border border-transparent text-slate-300 hover:text-white'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-display tracking-wider uppercase text-[10px] truncate max-w-[170px]">
+                              {phase.name}
+                            </span>
+                            <span className="font-mono text-[9px] text-slate-500">
+                              {phase.monthName.slice(0, 3)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 font-body leading-relaxed max-w-xl">
-                  {selectedPhase.goal}
-                </p>
-              </div>
-
-              {/* Progress HUD stats */}
-              <div className="w-full md:w-56 font-mono text-xs text-slate-400 space-y-4 relative z-10 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6">
-                <div>
-                  <XPBar
-                    label="PHASE PROGRESS"
-                    current={Math.round(selectedPhase.completionPercentage)}
-                    max={100}
-                    level={Math.floor(selectedPhase.completionPercentage / 10)}
-                    color="#00F5D4"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-[10px]">
-                  <div>
-                    <span className="block text-slate-500 uppercase tracking-widest text-[9px]">TARGET TIME</span>
-                    <span className="text-white font-bold flex items-center gap-1.5 mt-0.5">
-                      <Clock size={12} className="text-cyber-purple" /> {selectedPhase.estimatedHours}h
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-slate-500 uppercase tracking-widest text-[9px]">SKILL CORE</span>
-                    <span className="text-cyber-cyan font-bold flex items-center gap-1 mt-0.5 truncate">
-                      <Layers size={11} /> {selectedPhase.primarySkill}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           )}
-
-          {/* 4-Week Grid View */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[1, 2, 3, 4].map((weekNum) => {
-              const weekTasks = getTasksByWeek(weekNum);
-              return (
-                <TiltCard key={weekNum}>
-                  <div className="cyber-card flex flex-col min-h-[300px] h-full justify-between">
-                    <div>
-                      {/* Week Header */}
-                      <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
-                        <h3 className="font-display font-bold text-xs tracking-wider uppercase text-white">WEEK {weekNum}</h3>
-                        <span className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] font-mono text-slate-500">
-                          {weekTasks.length} {weekTasks.length === 1 ? 'QUEST' : 'QUESTS'}
-                        </span>
-                      </div>
-
-                      {/* Quest Items List */}
-                      <div className="space-y-3.5">
-                        {weekTasks.length > 0 ? (
-                          weekTasks.map((task) => {
-                            const isCompleted = task.status === 'Completed';
-                            return (
-                              <div
-                                key={task._id}
-                                className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-3 transition-all relative group ${
-                                  isCompleted
-                                    ? 'bg-cyber-cyan/5 border-cyber-cyan/15 text-slate-500 line-through'
-                                    : 'bg-white/5 border-white/5 hover:border-cyber-cyan/25 text-white'
-                                }`}
-                              >
-                                {/* Title and checkbox */}
-                                <div className="flex items-start space-x-2.5">
-                                  <button
-                                    onClick={() => handleToggleTask(task)}
-                                    className="mt-0.5 flex-shrink-0 text-slate-500 hover:text-cyber-cyan transition-colors cursor-pointer"
-                                  >
-                                    {isCompleted ? (
-                                      <CheckCircle2 size={16} className="text-cyber-cyan fill-cyber-cyan/15" />
-                                    ) : (
-                                      <Circle size={16} />
-                                    )}
-                                  </button>
-                                  <span className={`text-xs font-body font-medium leading-relaxed ${isCompleted ? 'text-slate-500' : 'text-slate-200'}`}>
-                                    {task.title}
-                                  </span>
-                                </div>
-
-                                {/* Category Badge & Actions */}
-                                <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[9px] font-mono font-bold tracking-wider">
-                                  <span className={`px-1.5 py-0.5 rounded ${
-                                    task.category === 'DSA'
-                                      ? 'bg-cyber-cyan/10 text-cyber-cyan'
-                                      : task.category === 'English'
-                                      ? 'bg-cyber-purple/10 text-cyber-purple'
-                                      : task.category === 'Aptitude'
-                                      ? 'bg-cyber-yellow/10 text-cyber-yellow'
-                                      : 'bg-cyber-pink/10 text-cyber-pink'
-                                  }`}>
-                                    {task.category}
-                                  </span>
-
-                                  {/* Inline actions bar */}
-                                  <div className="flex items-center space-x-3 text-slate-500">
-                                    <button
-                                      onClick={() => handleDuplicateTask(task)}
-                                      title="Duplicate Task"
-                                      className="hover:text-cyber-cyan transition-all cursor-pointer"
-                                    >
-                                      <Copy size={11} />
-                                    </button>
-                                    <button
-                                      onClick={() => openMoveModal(task)}
-                                      title="Migrate/Move Task"
-                                      className="hover:text-cyber-purple transition-all cursor-pointer"
-                                    >
-                                      <ArrowRightLeft size={11} />
-                                    </button>
-                                    {task.isCustom && (
-                                      <button
-                                        onClick={() => handleDeleteTask(task._id)}
-                                        title="Delete Task"
-                                        className="hover:text-cyber-red transition-all cursor-pointer"
-                                      >
-                                        <Trash2 size={11} />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <div className="flex items-center justify-center text-xs text-slate-600 italic py-10 font-mono">
-                            No active quests assigned
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </TiltCard>
-              );
-            })}
-          </div>
         </div>
       </div>
+
+      {/* Premium Month Card */}
+      {selectedPhase && (
+        <div className="bg-[#151B26] border border-white/5 rounded-xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-3 flex-1">
+            <div className="flex items-center space-x-2.5">
+              <span className="p-2.5 rounded-xl bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/20">
+                <CalendarIcon size={18} />
+              </span>
+              <div>
+                <h2 className="font-display font-black text-lg text-white tracking-wide uppercase">
+                  {selectedPhase.name}
+                </h2>
+                <p className="text-[10px] font-mono text-cyber-cyan font-semibold tracking-widest uppercase">
+                  {selectedPhase.monthName} {selectedPhase.year}
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
+              <div>
+                <span className="block text-slate-500 uppercase tracking-widest text-[9px] font-bold font-mono">Skill Focus</span>
+                <span className="text-white font-semibold">{getPhaseMeta(selectedPhase).focus}</span>
+              </div>
+              <div>
+                <span className="block text-slate-500 uppercase tracking-widest text-[9px] font-bold font-mono">Core Topics</span>
+                <span className="text-slate-300">{getPhaseMeta(selectedPhase).topics}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress & Toggle */}
+          <div className="w-full md:w-64 space-y-4 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
+            <XPBar
+              label="MONTHLY COMPLETION"
+              current={Math.round(selectedPhase.completionPercentage)}
+              max={100}
+              color="#22D3EE"
+            />
+            
+            <button
+              onClick={() => setWeeksOpen(!weeksOpen)}
+              className="cyber-btn w-full py-2.5 text-xs font-semibold"
+            >
+              {weeksOpen ? 'Hide Week Details' : 'Open Weeks'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 4-Week Grid View */}
+      {weeksOpen && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2, 3, 4].map((weekNum) => {
+            const weekTasks = getTasksByWeek(weekNum);
+            const creativeWeekName = getWeekName(selectedPhase?.name, weekNum);
+
+            return (
+              <TiltCard key={weekNum}>
+                <div className="cyber-card flex flex-col min-h-[300px] h-full justify-between">
+                  <div>
+                    {/* Week Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
+                      <div>
+                        <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider block">Week {weekNum}</span>
+                        <h3 className="font-display font-bold text-xs tracking-wider uppercase text-white mt-0.5">
+                          {creativeWeekName}
+                        </h3>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] font-mono text-slate-500">
+                        {weekTasks.length} {weekTasks.length === 1 ? 'TASK' : 'TASKS'}
+                      </span>
+                    </div>
+
+                    {/* Quest Items List */}
+                    <div className="space-y-3.5">
+                      {weekTasks.length > 0 ? (
+                        weekTasks.map((task) => {
+                          const isCompleted = task.status === 'Completed';
+                          return (
+                            <div
+                              key={task._id}
+                              className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-3 transition-all relative group ${
+                                isCompleted
+                                  ? 'bg-cyber-cyan/5 border-cyber-cyan/15 text-slate-500 line-through'
+                                  : 'bg-white/5 border-white/5 hover:border-cyber-cyan/25 text-white'
+                              }`}
+                            >
+                              {/* Title and checkbox */}
+                              <div className="flex items-start space-x-2.5">
+                                <button
+                                  onClick={() => handleToggleTask(task)}
+                                  className="mt-0.5 flex-shrink-0 text-slate-500 hover:text-cyber-cyan transition-colors cursor-pointer"
+                                >
+                                  {isCompleted ? (
+                                    <CheckCircle2 size={16} className="text-cyber-cyan fill-cyber-cyan/15" />
+                                  ) : (
+                                    <Circle size={16} />
+                                  )}
+                                </button>
+                                <span className={`text-xs font-body font-medium leading-relaxed ${isCompleted ? 'text-slate-500' : 'text-slate-200'}`}>
+                                  {task.title}
+                                </span>
+                              </div>
+
+                              {/* Category Badge & Actions */}
+                              <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[9px] font-mono font-bold tracking-wider">
+                                <span className={`px-1.5 py-0.5 rounded ${
+                                  task.category === 'DSA'
+                                    ? 'bg-cyber-cyan/10 text-cyber-cyan'
+                                    : task.category === 'English'
+                                    ? 'bg-cyber-purple/10 text-cyber-purple'
+                                    : task.category === 'Aptitude'
+                                    ? 'bg-cyber-yellow/10 text-cyber-yellow'
+                                    : 'bg-white/5 text-slate-400'
+                                }`}>
+                                  {task.category}
+                                </span>
+
+                                {/* Inline actions bar */}
+                                <div className="flex items-center space-x-3 text-slate-500">
+                                  <button
+                                    onClick={() => handleDuplicateTask(task)}
+                                    title="Duplicate Task"
+                                    className="hover:text-cyber-cyan transition-all cursor-pointer"
+                                  >
+                                    <Copy size={11} />
+                                  </button>
+                                  <button
+                                    onClick={() => openMoveModal(task)}
+                                    title="Migrate/Move Task"
+                                    className="hover:text-cyber-purple transition-all cursor-pointer"
+                                  >
+                                    <ArrowRightLeft size={11} />
+                                  </button>
+                                  {task.isCustom && (
+                                    <button
+                                      onClick={() => handleDeleteTask(task._id)}
+                                      title="Delete Task"
+                                      className="hover:text-cyber-red transition-all cursor-pointer"
+                                    >
+                                      <Trash2 size={11} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="flex items-center justify-center text-xs text-slate-600 italic py-12 font-mono">
+                          No tasks scheduled
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </TiltCard>
+            );
+          })}
+        </div>
+      )}
 
       {/* Dynamic migration modal */}
       {showMoveModal && activeTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-cyber-cyan/35 bg-[#0D111A] p-6 shadow-2xl relative" style={{ boxShadow: 'var(--glow-cyan)' }}>
+          <div className="w-full max-w-sm rounded-2xl border border-cyber-cyan/35 bg-[#0D111A] p-6 shadow-2xl relative">
             
             <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
               <h3 className="font-display font-bold text-white text-xs tracking-widest uppercase">MIGRATE ROADMAP TASK</h3>

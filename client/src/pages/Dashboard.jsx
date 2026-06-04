@@ -1,227 +1,160 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../utils/api';
 import {
   Flame,
   Github,
-  TrendingUp,
   Clock,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Calendar,
+  CheckCircle2,
+  Circle,
+  Plus,
+  BookOpen,
+  AlertCircle,
+  PlusCircle,
+  Activity
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
-import TiltCard from '../components/TiltCard';
-import CyberButton from '../components/CyberButton';
 import XPBar from '../components/XPBar';
 import TypewriterText from '../components/TypewriterText';
 
-// ── CONCENTRIC DOUBLE-RING READINESS METER
-const ReadinessMeter = ({ internshipPct = 0, placementPct = 0 }) => {
-  const size = 220;
-  const strokeW = 10;
-  
-  // Outer circle (Internship)
-  const rOuter = (size - strokeW * 2) / 2;
-  const circOuter = 2 * Math.PI * rOuter;
-  
-  // Inner circle (Placement)
-  const rInner = rOuter - 18;
-  const circInner = 2 * Math.PI * rInner;
+// ── ATTENDANCE OVERVIEW CARD
+const AttendanceOverviewCard = ({ summary }) => {
+  if (!summary) return null;
+
+  const { overallPercentage = 0, status = 'SAFE', bestSubject = 'N/A', lowestSubject = 'N/A', bufferMessage = '' } = summary;
+
+  const statusColors = {
+    SAFE: 'text-green-400 bg-green-500/10 border-green-500/20',
+    WARNING: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+    DANGER: 'text-red-400 bg-red-500/10 border-red-500/20',
+  };
+
+  const ringColors = {
+    SAFE: '#22C55E', // green
+    WARNING: '#F59E0B', // yellow
+    DANGER: '#EF4444', // red
+  };
+
+  const statusColor = statusColors[status] || statusColors.SAFE;
+  const ringColor = ringColors[status] || ringColors.SAFE;
+
+  // Circular progress math
+  const size = 90;
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (overallPercentage / 100) * circumference;
 
   return (
-    <TiltCard className="h-full">
-      <div className="cyber-card flex flex-col items-center justify-center p-6 text-center h-full">
-        <div className="font-mono text-[10px] text-slate-500 tracking-[0.2em] mb-4 uppercase">
-          READINESS MATRIX
+    <div className="bg-[#151B26] border border-white/5 rounded-xl p-6 flex flex-col justify-between h-full relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-cyan/5 rounded-full blur-[80px]" />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            Attendance Overview
+          </span>
+          <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold border uppercase tracking-wider ${statusColor}`}>
+            {status}
+          </span>
         </div>
-        <div className="relative">
-          <svg width={size} height={size} className="overflow-visible">
-            {/* Outer Internship Track */}
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={rOuter}
-              fill="none"
-              stroke="rgba(0, 245, 212, 0.05)"
-              strokeWidth={strokeW}
-            />
-            {/* Outer Internship Progress */}
-            <motion.circle
-              cx={size / 2}
-              cy={size / 2}
-              r={rOuter}
-              fill="none"
-              stroke="#00F5D4"
-              strokeWidth={strokeW}
-              strokeLinecap="round"
-              strokeDasharray={circOuter}
-              initial={{ strokeDashoffset: circOuter }}
-              animate={{ strokeDashoffset: circOuter - (internshipPct / 100) * circOuter }}
-              transition={{ duration: 1.5, ease: 'easeOut' }}
-              transform={`rotate(-90 ${size / 2} ${size / 2})`}
-              style={{ filter: 'drop-shadow(0 0 8px rgba(0, 245, 212, 0.4))' }}
-            />
 
-            {/* Inner Placement Track */}
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={rInner}
-              fill="none"
-              stroke="rgba(123, 97, 255, 0.05)"
-              strokeWidth={strokeW}
-            />
-            {/* Inner Placement Progress */}
-            <motion.circle
-              cx={size / 2}
-              cy={size / 2}
-              r={rInner}
-              fill="none"
-              stroke="#7B61FF"
-              strokeWidth={strokeW}
-              strokeLinecap="round"
-              strokeDasharray={circInner}
-              initial={{ strokeDashoffset: circInner }}
-              animate={{ strokeDashoffset: circInner - (placementPct / 100) * circInner }}
-              transition={{ duration: 1.5, ease: 'easeOut', delay: 0.2 }}
-              transform={`rotate(-90 ${size / 2} ${size / 2})`}
-              style={{ filter: 'drop-shadow(0 0 8px rgba(123, 97, 255, 0.4))' }}
-            />
-          </svg>
-
-          {/* Text inside the ring */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-display font-black text-3xl text-cyber-cyan text-shadow-[0_0_10px_rgba(0,245,212,0.6)]">
-              {internshipPct}%
-            </span>
-            <span className="font-mono text-[9px] text-slate-500 tracking-wider mt-1.5 uppercase">
-              INTERNSHIP READY
-            </span>
-          </div>
-        </div>
-        
-        {/* Visual Legend */}
-        <div className="flex gap-4 mt-5 text-[10px] font-mono">
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-cyber-cyan rounded-full animate-ping" /> Internship</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-cyber-purple rounded-full" /> Placement ({placementPct}%)</span>
-        </div>
-      </div>
-    </TiltCard>
-  );
-};
-
-// ── FUTURE SELF METRIC BAR PREVIEWS
-const FutureSelfWidget = ({ user, readiness }) => {
-  const currentSkills = [
-    { label: 'DSA Solved', current: readiness?.breakdown?.dsaCompletionPercent || 0, max: 100, level: Math.floor((readiness?.breakdown?.dsaCompletionPercent || 0) / 10), color: '#00F5D4' },
-    { label: 'React Proficiency', current: user?.skillsProficiency?.react || 0, max: 100, level: Math.floor((user?.skillsProficiency?.react || 0) / 10), color: '#7B61FF' },
-    { label: 'Backend Architecture', current: user?.skillsProficiency?.backend || 0, max: 100, level: Math.floor((user?.skillsProficiency?.backend || 0) / 10), color: '#F472B6' }
-  ];
-
-  const targetSkills = [
-    { label: 'DSA Solved', current: 95, max: 100, level: 9, color: '#00F5D4' },
-    { label: 'React Proficiency', current: 90, max: 100, level: 9, color: '#7B61FF' },
-    { label: 'Backend Architecture', current: 85, max: 100, level: 8, color: '#F472B6' }
-  ];
-
-  return (
-    <TiltCard>
-      <div className="cyber-card h-full">
-        <div className="font-mono text-[10px] text-cyber-purple tracking-[0.2em] mb-4 uppercase">
-          🔮 FUTURE SELF MODE
-        </div>
-        <div className="grid grid-cols-[1fr_2px_1fr] gap-4 items-stretch">
-          {/* Current Column */}
-          <div>
-            <div className="text-[9px] text-slate-500 mb-3 font-mono uppercase tracking-widest">NOW</div>
-            {currentSkills.map(s => <XPBar key={s.label} {...s} />)}
-          </div>
-          {/* Vertical Divider */}
-          <div className="bg-cyber-purple/20 self-stretch shadow-purple/10 shadow-lg" />
-          {/* Target Column */}
-          <div>
-            <div className="text-[9px] text-cyber-purple mb-3 font-mono uppercase tracking-widest">NOV 2027</div>
-            {targetSkills.map(s => <XPBar key={s.label} {...s} />)}
-          </div>
-        </div>
-      </div>
-    </TiltCard>
-  );
-};
-
-// ── AI MISSION ADVISOR WIDGET
-const AIAgentWidget = () => {
-  return (
-    <TiltCard>
-      <div className="cyber-card border border-cyber-purple/30 h-full flex flex-col justify-between">
-        <div>
-          <div className="font-mono text-[10px] text-cyber-purple tracking-[0.2em] mb-3 uppercase">
-            🤖 ATR AI — MISSION ADVISOR
-          </div>
-          
-          {/* Station Cam Feed showing User's setup photo */}
-          <div className="relative w-full h-24 rounded-lg overflow-hidden border border-cyber-purple/20 mb-3.5 group">
-            <img 
-              src="/developer-mode.jpg" 
-              alt="Developer setup feed" 
-              className="w-full h-full object-cover filter brightness-[0.75] contrast-[1.1] grayscale-[15%] group-hover:scale-105 transition-transform duration-500" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-            <div className="absolute top-2 left-2 flex items-center space-x-1.5 px-2 py-0.5 rounded bg-black/75 border border-cyber-purple/30 font-mono text-[8px] text-cyber-purple tracking-widest uppercase">
-              <span className="w-1.5 h-1.5 bg-cyber-purple rounded-full animate-ping" />
-              <span>LIVE FEED: BUNK_01</span>
-            </div>
-            <div className="absolute bottom-1 right-2 font-mono text-[8px] text-slate-500">
-              SECURE_LINK // 83.9B
+        <div className="flex items-center space-x-6 py-2">
+          {/* Ring */}
+          <div className="relative" style={{ width: size, height: size }}>
+            <svg width={size} height={size} className="transform -rotate-90">
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                className="stroke-slate-800"
+                strokeWidth={strokeWidth}
+                fill="transparent"
+              />
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                stroke={ringColor}
+                strokeWidth={strokeWidth}
+                fill="transparent"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                className="transition-all duration-1000 ease-out"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+              <span className="text-sm font-mono font-black text-white">{Math.round(overallPercentage)}%</span>
+              <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Overall</span>
             </div>
           </div>
 
-          <div className="text-xs text-slate-400 mb-3 leading-relaxed font-body h-12">
-            <TypewriterText text="Analyzing preparation logs... Suggested focus: solve Tree traversals & study DBMS indexing patterns." speed={40} />
-          </div>
-
-          <div className="bg-cyber-purple/5 border border-cyber-purple/10 rounded-xl p-3.5 mb-4 text-xs font-mono">
-            <div className="text-slate-500 mb-1.5 uppercase text-[9px] tracking-wider">SUGGESTED MISSION:</div>
-            <div className="text-cyber-cyan mb-3">Solve 3 BST questions (P1)</div>
-            <div className="text-slate-500 mb-1.5 uppercase text-[9px] tracking-wider">RECOMMENDED INTEL:</div>
-            <div className="text-cyber-purple">Practice on Leetcode / Strivers Trees</div>
+          <div className="flex-1 space-y-1">
+            <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">Target Attendance</span>
+            <span className="text-sm font-black text-white">76%</span>
+            <p className="text-[10px] text-slate-300 font-mono mt-2 font-semibold leading-relaxed">{bufferMessage}</p>
           </div>
         </div>
 
-        <CyberButton variant="purple" className="w-full text-center py-2.5 text-xs">
-          ACCEPT MISSION
-        </CyberButton>
+        <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider block">Best Subject</span>
+            <span className="text-white font-semibold block truncate mt-0.5">{bestSubject}</span>
+          </div>
+          <div>
+            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider block">Lowest Subject</span>
+            <span className="text-white font-semibold block truncate mt-0.5">{lowestSubject}</span>
+          </div>
+        </div>
       </div>
-    </TiltCard>
+
+      <Link
+        to="/attendance"
+        className="cyber-btn mt-6 w-full py-2.5 text-xs text-cyber-cyan border border-cyber-cyan/20 bg-cyber-cyan/5 hover:bg-cyber-cyan/10 font-semibold text-center block relative z-10"
+      >
+        OPEN ATTENDANCE PANEL
+      </Link>
+    </div>
   );
 };
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [currentPhase, setCurrentPhase] = useState(null);
-  const [readiness, setReadiness] = useState(null);
+  const [attendanceSummary, setAttendanceSummary] = useState(null);
   const [streak, setStreak] = useState(null);
   const [todayChecklist, setTodayChecklist] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Quick Action States
+  const [showStudyModal, setShowStudyModal] = useState(false);
+  const [studyHours, setStudyHours] = useState('');
+  const [submittingHours, setSubmittingHours] = useState(false);
+  const [studyMessage, setStudyMessage] = useState('');
+
   const fetchDashboardData = async () => {
     try {
-      const [phaseRes, readinessRes, streakRes, todayRes, analyticsRes] = await Promise.all([
+      const [phaseRes, attendanceRes, streakRes, todayRes, analyticsRes] = await Promise.all([
         apiRequest('/phases/current'),
-        apiRequest('/profile/readiness'),
+        apiRequest('/attendance/summary'),
         apiRequest('/daily/streak'),
         apiRequest('/daily/today'),
         apiRequest('/analytics')
       ]);
 
       if (phaseRes.success) setCurrentPhase(phaseRes.phase);
-      if (readinessRes.success) setReadiness(readinessRes);
+      if (attendanceRes.success) setAttendanceSummary(attendanceRes.summary);
       if (streakRes.success) setStreak(streakRes.streak);
-      if (todayRes.success) setTodayChecklist(todayRes);
+      if (todayRes.success) setTodayChecklist(todayRes.progress);
       if (analyticsRes.success) setAnalytics(analyticsRes);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -240,6 +173,50 @@ const Dashboard = () => {
     };
   }, []);
 
+  const handleToggleDailyTask = async (itemKey) => {
+    try {
+      const data = await apiRequest('/daily/toggle', {
+        method: 'POST',
+        body: { itemKey },
+      });
+      if (data.success) {
+        fetchDashboardData();
+      }
+    } catch (err) {
+      console.error('Failed to toggle daily task:', err);
+    }
+  };
+
+  const handleLogStudySession = async (e) => {
+    e.preventDefault();
+    if (!studyHours) return;
+    setSubmittingHours(true);
+    setStudyMessage('');
+    try {
+      const data = await apiRequest('/analytics/study-hours', {
+        method: 'POST',
+        body: { studyHours: Number(studyHours) }
+      });
+      if (data.success) {
+        setStudyMessage('Hours logged successfully!');
+        setStudyHours('');
+        fetchDashboardData();
+        setTimeout(() => {
+          setShowStudyModal(false);
+          setStudyMessage('');
+        }, 1200);
+      }
+    } catch (err) {
+      setStudyMessage(err.message || 'Failed to log hours');
+    } finally {
+      setSubmittingHours(false);
+    }
+  };
+
+  const triggerAddTask = () => {
+    window.dispatchEvent(new CustomEvent('openAddTaskModal'));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
@@ -253,317 +230,355 @@ const Dashboard = () => {
   const totalToday = todayTasks.length;
   const checklistPercent = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
 
-  // RPG Stat Layout values mapped from actual user skills
-  const rpgStats = [
-    { label: 'DSA PRACTICE', current: readiness?.breakdown?.dsaCompletionPercent || 0, max: 100, level: Math.floor((readiness?.breakdown?.dsaCompletionPercent || 0) / 10), color: '#00F5D4' },
-    { label: 'REACT ENG', current: user?.skillsProficiency?.react || 0, max: 100, level: Math.floor((user?.skillsProficiency?.react || 0) / 10), color: '#7B61FF' },
-    { label: 'BACKEND DEV', current: user?.skillsProficiency?.backend || 0, max: 100, level: Math.floor((user?.skillsProficiency?.backend || 0) / 10), color: '#F472B6' },
-    { label: 'QUANT LOGIC', current: readiness?.breakdown?.avgAptAccuracy || 0, max: 100, level: Math.floor((readiness?.breakdown?.avgAptAccuracy || 0) / 10), color: '#FACC15' }
-  ];
+  // Dynamically compute target registration days (Target: Feb 1, 2027)
+  const getDaysRemaining = () => {
+    const target = new Date('2027-02-01');
+    const today = new Date();
+    const diff = target - today;
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  };
+  const daysRemaining = getDaysRemaining();
+
+  // Dynamically compute estimated study duration
+  const getEstimatedTime = () => {
+    let mins = 0;
+    todayTasks.forEach(t => {
+      if (t.completed) return; // Only count pending tasks
+      if (t.key === 'dsa') mins += 90;
+      else if (t.key === 'dev') mins += 120;
+      else if (t.key === 'english') mins += 30;
+      else if (t.key === 'aptitude') mins += 60;
+      else mins += 45;
+    });
+    if (mins === 0) return '0h';
+    const hrs = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    return remainingMins > 0 ? `${hrs}h ${remainingMins}m` : `${hrs}h`;
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
       
-      {/* ── HERO BANNER */}
-      <div className="relative p-6 rounded-2xl border border-white/5 bg-gradient-to-r from-void via-card to-void overflow-hidden shadow-xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-cyan/5 rounded-full blur-[80px]" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="font-display text-[10px] text-slate-500 tracking-[0.25em] uppercase mb-1">
-              ░░ MISSION CONTROL STATUS ░░
-            </div>
-            <h2 className="text-3xl font-display font-black text-white flex items-center gap-2">
-              WELCOME BACK, <span className="text-cyber-cyan">{user?.name?.toUpperCase()}</span>! ⚡
-            </h2>
-            <p className="text-xs text-slate-400 mt-2 font-mono">
-              INTERNSHIP REGISTRATION BEGINS <strong className="text-cyber-cyan">JUNE 2026</strong>. TARGET READINESS DATE: <strong className="text-cyber-cyan">FEB 2027</strong>.
-            </p>
-          </div>
-          {/* Daily Streak Achievement Badge */}
-          <div className="flex items-center space-x-3 bg-cyber-yellow/5 border border-cyber-yellow/20 px-5 py-3 rounded-2xl shadow-[0_0_15px_rgba(250,204,21,0.1)]">
-            <Flame size={24} className="text-cyber-yellow fill-cyber-yellow animate-bounce" />
+      {/* ── HEADER NAVIGATION & QUICK ACTIONS */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5">
+        <div>
+          <h1 className="text-2xl font-black font-display text-white tracking-wide">
+            WELCOME BACK, <span className="text-cyber-cyan">{user?.name}</span>!
+          </h1>
+          <p className="text-xs text-slate-400 font-mono mt-1">
+            Target Readiness: <strong className="text-cyber-cyan">Feb 1, 2027</strong> • {daysRemaining} Days remaining
+          </p>
+        </div>
+
+        {/* Quick Actions Panel */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={triggerAddTask}
+            className="px-3.5 py-2 rounded-lg border border-white/10 hover:border-cyber-cyan bg-white/5 hover:bg-cyber-cyan/5 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Plus size={14} className="text-cyber-cyan" /> Add Task
+          </button>
+          <button
+            onClick={() => navigate('/resources')}
+            className="px-3.5 py-2 rounded-lg border border-white/10 hover:border-cyber-cyan bg-white/5 hover:bg-cyber-cyan/5 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <BookOpen size={14} className="text-cyber-cyan" /> Add Resource
+          </button>
+          <button
+            onClick={() => setShowStudyModal(true)}
+            className="px-3.5 py-2 rounded-lg border border-white/10 hover:border-cyber-cyan bg-white/5 hover:bg-cyber-cyan/5 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Activity size={14} className="text-cyber-cyan" /> Log Study Session
+          </button>
+        </div>
+      </div>
+
+      {/* ── MAIN GRID: COMMAND CENTER & READY MULTIPLIER */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Dominant Command Center Card */}
+        <div className="lg:col-span-2">
+          <div className="bg-[#151B26] border border-white/5 rounded-xl p-6 flex flex-col justify-between h-full relative overflow-hidden">
             <div>
-              <span className="block text-2xl font-display font-black text-white leading-none">
-                {streak?.currentStreak || 0} DAYS
-              </span>
-              <span className="text-[9px] text-cyber-yellow/80 font-bold uppercase tracking-wider">
-                CURRENT STREAK
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── MAIN CONTENT GRID: HUD DIAGRAM & STATUS PANELS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Concentric Double-Ring Readiness Meter */}
-        <div className="lg:col-span-1">
-          <ReadinessMeter
-            internshipPct={readiness?.internshipScore}
-            placementPct={readiness?.placementScore}
-          />
-        </div>
-
-        {/* Character RPG Status Logs */}
-        <div className="lg:col-span-1">
-          <TiltCard>
-            <div className="cyber-card h-full flex flex-col justify-between">
-              <div>
-                <div className="font-mono text-[10px] text-slate-500 tracking-[0.2em] mb-4 uppercase">
-                  CHARACTER PORTRAIT & STATS
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/5">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">COMMAND CENTER</span>
+                  <h2 className="text-lg font-bold text-white uppercase mt-0.5 font-display tracking-wider">
+                    {currentPhase?.name || 'ROADMAP INITIATION'}
+                  </h2>
                 </div>
-                
-                {/* Character Headshot Frame */}
-                <div className="flex items-center space-x-4 mb-5 pb-4 border-b border-white/5">
-                  <div className="relative w-16 h-16 rounded-xl border-2 border-cyber-cyan shadow-[0_0_15px_rgba(0,245,212,0.3)] overflow-hidden flex-shrink-0">
-                    <img 
-                      src="/avatar-arms-crossed.jpg" 
-                      alt="Developer Portrait" 
-                      className="w-full h-full object-cover" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                    <div className="absolute bottom-0.5 right-1 w-2.5 h-2.5 bg-cyber-cyan rounded-full border border-black animate-pulse" />
-                  </div>
-                  <div>
-                    <h4 className="font-display font-black text-sm text-white tracking-wider">
-                      {user?.name?.toUpperCase() || 'AGENT'}
-                    </h4>
-                    <span className="text-[10px] font-mono text-cyber-cyan tracking-wider uppercase block">
-                      CLASS: FULL STACK MAGE 🧙
-                    </span>
-                    <span className="text-[9px] font-mono text-slate-500">
-                      LEVEL 14 ROADMAP AGENT
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {rpgStats.map(s => (
-                    <XPBar
-                      key={s.label}
-                      label={s.label}
-                      current={s.current}
-                      max={s.max}
-                      level={s.level}
-                      color={s.color}
-                    />
-                  ))}
+                <div className="text-right">
+                  <span className="block text-[9px] font-mono text-slate-500 uppercase tracking-wider">ESTIMATED TIME TODAY</span>
+                  <span className="text-sm font-mono font-bold text-cyber-cyan">{getEstimatedTime()}</span>
                 </div>
               </div>
-            </div>
-          </TiltCard>
-        </div>
 
-        {/* Active Mission HUD card */}
-        <div className="lg:col-span-1">
-          <TiltCard className="h-full">
-            <div className="cyber-card border-l-2 border-l-cyber-cyan h-full flex flex-col justify-between">
-              <div>
-                <div className="font-mono text-[10px] text-cyber-cyan tracking-[0.2em] mb-4 uppercase">
-                  ⚡ ACTIVE MISSION
-                </div>
-                <h3 className="font-display font-black text-base text-white tracking-wide leading-snug mb-2">
-                  {currentPhase?.name || 'INITIAL BOOTUP PHASE'}
-                </h3>
-                <span className="text-[10px] font-mono text-cyber-cyan bg-cyber-cyan/5 border border-cyber-cyan/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  Month {Number(currentPhase?.monthIndex || 0) + 1}
+              {/* Dynamic Focus Milestone Header */}
+              <div className="flex items-center gap-2 mb-6">
+                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold font-mono text-cyber-purple bg-cyber-purple/10 border border-cyber-purple/20 uppercase tracking-wide">
+                  Month {Number(currentPhase?.monthIndex || 0) + 1} Focus
                 </span>
-                <p className="text-xs text-slate-400 mt-4 leading-relaxed font-body">
-                  {currentPhase?.goal || 'Seeding curriculum logs. Initialize roadmap tracker to fetch.'}
-                </p>
+                <span className="text-xs text-slate-400 font-medium">
+                  {currentPhase?.primarySkill || 'Initial Curriculum Baseline'}
+                </span>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-white/5 space-y-3">
-                <XPBar
-                  label="MISSION PROGRESS"
-                  current={Math.round(currentPhase?.completionPercentage || 0)}
-                  max={100}
-                  level={Math.floor((currentPhase?.completionPercentage || 0) / 10)}
-                  color="#00F5D4"
-                />
-              </div>
-            </div>
-          </TiltCard>
-        </div>
-      </div>
-
-      {/* ── MIDDLE HUD ROW: FUTURE SELF & MISSION ADVISOR & QUESTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Future Self Mode Bar comparisons */}
-        <div className="lg:col-span-1">
-          <FutureSelfWidget user={user} readiness={readiness} />
-        </div>
-
-        {/* AI Advisor Mini Widget */}
-        <div className="lg:col-span-1">
-          <AIAgentWidget />
-        </div>
-
-        {/* Today's parallel track quests preview */}
-        <div className="lg:col-span-1">
-          <TiltCard className="h-full">
-            <div className="cyber-card flex flex-col justify-between h-full">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase">
-                    TODAY'S QUEST LOGS
-                  </h3>
-                  <span className="text-[10px] text-slate-500 font-mono tracking-widest">
-                    {completedToday}/{totalToday} DONE
-                  </span>
-                </div>
-
-                <div className="w-full bg-slate-900 border border-white/5 rounded-md h-1.5 overflow-hidden">
-                  <div
-                    className="bg-cyber-cyan h-full rounded-full transition-all duration-300"
-                    style={{ width: `${checklistPercent}%` }}
-                  />
-                </div>
-
-                {/* Quests mini list */}
-                <div className="space-y-2 mt-2 max-h-[140px] overflow-y-auto">
-                  {todayTasks.length > 0 ? (
-                    todayTasks.map((t, idx) => (
+              {/* Today's Checklist Priorities */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">TODAY'S PRIORITIES</h4>
+                
+                {todayTasks.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {todayTasks.map((t, idx) => (
                       <div
                         key={idx}
-                        className={`flex items-center justify-between p-2.5 rounded-xl border text-[11px] transition-all font-mono ${
+                        onClick={() => handleToggleDailyTask(t.key)}
+                        className={`p-3.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${
                           t.completed
-                            ? 'bg-cyber-cyan/5 border-cyber-cyan/20 text-cyber-cyan/95'
-                            : 'bg-white/5 border-white/5 text-slate-400'
+                            ? 'bg-cyber-cyan/5 border-cyber-cyan/20 text-slate-400'
+                            : 'bg-black/20 border-white/5 hover:border-cyber-cyan/35 text-white'
                         }`}
                       >
-                        <span>{t.title}</span>
-                        <span className="px-2 py-0.5 rounded bg-white/5 text-[9px] text-slate-500 font-bold border border-white/5 uppercase">
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          {t.completed ? (
+                            <CheckCircle2 size={16} className="text-cyber-cyan flex-shrink-0" />
+                          ) : (
+                            <Circle size={16} className="text-slate-500 hover:text-cyber-cyan flex-shrink-0" />
+                          )}
+                          <span className={`text-xs font-medium truncate ${t.completed ? 'line-through text-slate-500' : ''}`}>
+                            {t.title}
+                          </span>
+                        </div>
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider bg-white/5 border border-white/5 text-slate-400">
                           {t.category}
                         </span>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 text-xs text-slate-500 italic font-mono">
-                      No active daily quests seeded.
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-end">
-                <Link to="/daily" className="text-xs font-mono font-bold text-cyber-cyan hover:text-cyan-300 flex items-center gap-1 group">
-                  OPEN QUEST DIARY
-                  <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-xs text-slate-500 italic border border-dashed border-white/5 rounded-lg bg-black/10">
+                    No tasks scheduled
+                  </div>
+                )}
               </div>
             </div>
-          </TiltCard>
+
+            {/* Current month progress bar */}
+            <div className="mt-8 pt-4 border-t border-white/5">
+              <XPBar
+                label="CURRENT MONTH MILESTONE PROGRESS"
+                current={Math.round(currentPhase?.completionPercentage || 0)}
+                max={100}
+                color="#22D3EE"
+              />
+            </div>
+          </div>
         </div>
+
+        {/* Attendance overview card */}
+        <div className="lg:col-span-1">
+          <AttendanceOverviewCard summary={attendanceSummary} />
+        </div>
+
       </div>
 
-      {/* ── BOT ROW: GITHUB AND STUDY TIME */}
+      {/* ── ROW 2: RECOMMENDATIONS & SECONDARY METRICS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* GitHub Stats card */}
+        {/* Next Recommended Task Card */}
         <div className="lg:col-span-1">
-          <TiltCard className="h-full">
-            <div className="cyber-card flex flex-col justify-between h-full relative overflow-hidden">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase">
-                    GITHUB HUD TRACKER
-                  </h3>
-                  <span className="text-[10px] text-cyber-cyan font-bold flex items-center gap-1 animate-pulse">
-                    <Sparkles size={12} /> SYNC ONLINE
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 pt-2">
-                  <div className="text-center p-3 rounded-xl bg-white/5 border border-white/5 font-mono">
-                    <span className="block text-xl font-bold text-white">
-                      {user?.githubStats?.repos || 0}
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                      REPOS
-                    </span>
-                  </div>
-
-                  <div className="text-center p-3 rounded-xl bg-white/5 border border-white/5 font-mono">
-                    <span className="block text-xl font-bold text-white">
-                      {user?.githubStats?.contributions || 0}
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                      CONTR.
-                    </span>
-                  </div>
-
-                  <div className="text-center p-3 rounded-xl bg-white/5 border border-white/5 font-mono">
-                    <span className="block text-xl font-bold text-white">
-                      {user?.githubStats?.streak || 0}d
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                      STREAK
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center text-xs font-mono text-slate-400 bg-white/5 p-3 rounded-xl border border-white/5">
-                  <span>PROJECT CREDITS:</span>
-                  <strong className="text-white">{user?.githubStats?.projectsCount || 0}/4 Complete</strong>
-                </div>
+          <div className="bg-[#151B26] border border-white/5 rounded-xl p-6 flex flex-col justify-between h-full">
+            <div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                Next Recommended Task
               </div>
-              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-end">
-                <Link to="/settings" className="text-xs font-mono font-bold text-cyber-cyan hover:text-cyan-300 flex items-center gap-1 group">
-                  SYNC LINK
-                  <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                </Link>
+              <div className="space-y-3.5">
+                <div className="p-3.5 bg-cyber-cyan/5 border border-cyber-cyan/10 rounded-lg">
+                  <span className="text-[9px] text-cyber-cyan uppercase tracking-wider font-bold block mb-1 font-mono">Active Target</span>
+                  <span className="text-sm font-semibold text-white block">Complete: React Hooks</span>
+                  <span className="text-xs text-slate-400 mt-1 block">Learn State sharing and Lifecycle triggers</span>
+                </div>
+                <div className="flex justify-between items-center text-xs font-mono text-slate-400 bg-black/25 p-3 rounded-lg border border-white/5">
+                  <span>ESTIMATED DURATION:</span>
+                  <strong className="text-white">45 min</strong>
+                </div>
+                <div className="flex justify-between items-center text-xs font-mono text-slate-400 bg-black/25 p-3 rounded-lg border border-white/5">
+                  <span>PRIORITY:</span>
+                  <strong className="text-cyber-purple uppercase">High</strong>
+                </div>
               </div>
             </div>
-          </TiltCard>
+            <button className="cyber-btn mt-6 w-full py-2.5 text-xs font-semibold">
+              START TASK
+            </button>
+          </div>
         </div>
 
-        {/* Analytics chart: Weekly study hours */}
-        {analytics?.studyLogs && (
-          <div className="lg:col-span-2">
-            <TiltCard className="h-full">
-              <div className="cyber-card h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
-                    <Clock className="text-cyber-cyan animate-pulse" size={16} />
-                    STUDY RADAR (LAST 30 DAYS)
-                  </h3>
-                  <div className="flex items-center gap-4 text-[10px] font-mono font-semibold">
-                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-cyber-cyan rounded-full" /> Actual</span>
-                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-cyber-purple rounded-full" /> Target</span>
-                  </div>
-                </div>
-
-                <div className="h-44 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={analytics.studyLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#00F5D4" stopOpacity={0.25}/>
-                          <stop offset="95%" stopColor="#00F5D4" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#7B61FF" stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor="#7B61FF" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="date" stroke="#475569" fontSize={9} tickLine={false} fontFamily="var(--font-mono)" />
-                      <YAxis stroke="#475569" fontSize={9} tickLine={false} fontFamily="var(--font-mono)" />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#0D111A', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '12px' }}
-                        labelStyle={{ color: '#fff', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}
-                      />
-                      <Area type="monotone" dataKey="actual" stroke="#00F5D4" strokeWidth={2} fillOpacity={1} fill="url(#colorActual)" />
-                      <Area type="monotone" dataKey="target" stroke="#7B61FF" strokeWidth={1.5} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorTarget)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+        {/* Streak Widget Card */}
+        <div className="lg:col-span-1 bg-[#151B26] border border-white/5 rounded-xl p-6 flex flex-col justify-between h-full">
+          <div>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+              Daily Streak status
+            </div>
+            <div className="p-5 rounded-lg bg-cyber-yellow/10 text-cyber-yellow border border-cyber-yellow/20 flex items-center justify-between">
+              <div className="flex items-center space-x-3.5">
+                <Flame size={20} className="fill-cyber-yellow/25 animate-pulse" />
+                <div>
+                  <span className="block text-xl font-mono font-bold text-white">{streak?.currentStreak || 0} DAYS</span>
+                  <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Current Streak</span>
                 </div>
               </div>
-            </TiltCard>
+              <span className="text-sm px-2 py-1 rounded bg-[#F59E0B]/10 border border-[#F59E0B]/20 text-cyber-yellow font-bold font-mono">
+                LEVEL READY
+              </span>
+            </div>
           </div>
-        )}
+          <p className="text-[10px] text-slate-400 font-mono mt-4 font-semibold leading-relaxed uppercase tracking-wider text-center">
+            maintain streak to build momentum
+          </p>
+        </div>
+
+        {/* Tasks Completed overview Card */}
+        <div className="lg:col-span-1 bg-[#151B26] border border-white/5 rounded-xl p-6 flex flex-col justify-between h-full">
+          <div>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+              Task Checklist Completeness
+            </div>
+            <div className="p-5 rounded-lg bg-[#8B5CF6]/5 border border-[#8B5CF6]/15 flex items-center justify-between">
+              <div className="flex items-center space-x-3.5">
+                <CheckCircle2 size={20} className="text-cyber-purple" />
+                <div>
+                  <span className="block text-xl font-mono font-bold text-white">
+                    {completedToday} / {totalToday}
+                  </span>
+                  <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Completed Today</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="font-mono text-xs font-bold text-cyber-purple">{checklistPercent}%</span>
+                <div className="w-16 bg-slate-900 h-1 rounded-full overflow-hidden mt-1.5">
+                  <div className="bg-cyber-purple h-full" style={{ width: `${checklistPercent}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 font-mono mt-4 font-semibold leading-relaxed uppercase tracking-wider text-center">
+            complete today's priorities checklist
+          </p>
+        </div>
+
       </div>
+
+      {/* ── ROW 3: STUDY HOUR CHART */}
+      <div className="grid grid-cols-1 gap-6">
+        
+        {/* Study Logs Area Chart */}
+        <div className="w-full">
+          <div className="bg-[#151B26] border border-white/5 rounded-xl p-6 h-full flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
+                <Clock className="text-cyber-cyan" size={16} />
+                STUDY RADAR (LAST 30 DAYS)
+              </h3>
+              <div className="flex items-center gap-4 text-[9px] font-mono font-bold uppercase tracking-wider">
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 bg-cyber-cyan rounded-full" /> Actual</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 bg-cyber-purple rounded-full" /> Target</span>
+              </div>
+            </div>
+
+            {!analytics?.studyLogs || analytics.studyLogs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-44 text-slate-500 italic text-xs border border-dashed border-white/5 rounded-xl bg-black/10">
+                Start tracking your progress
+              </div>
+            ) : (
+              <div className="h-44 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={analytics.studyLogs} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22D3EE" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#22D3EE" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="date" stroke="#4B5563" fontSize={9} tickLine={false} fontFamily="var(--font-mono)" />
+                    <YAxis stroke="#4B5563" fontSize={9} tickLine={false} fontFamily="var(--font-mono)" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '8px' }}
+                      labelStyle={{ color: '#fff', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}
+                    />
+                    <Area type="monotone" dataKey="actual" stroke="#22D3EE" strokeWidth={2} fillOpacity={1} fill="url(#colorActual)" />
+                    <Area type="monotone" dataKey="target" stroke="#8B5CF6" strokeWidth={1.5} strokeDasharray="3 3" fillOpacity={1} fill="url(#colorTarget)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Log Study Session Modal Overlay */}
+      {showStudyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl border border-white/5 bg-[#151B26] p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider font-display">Log Study Session</h3>
+              <button
+                onClick={() => setShowStudyModal(false)}
+                className="text-slate-500 hover:text-white p-1 text-lg leading-none"
+              >
+                &times;
+              </button>
+            </div>
+            
+            {studyMessage && (
+              <div className="mb-3 p-2.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyber-cyan text-xs font-mono">
+                {studyMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleLogStudySession} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                  Actual Hours Trained Today
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  required
+                  min="0.5"
+                  max="24"
+                  value={studyHours}
+                  onChange={(e) => setStudyHours(e.target.value)}
+                  placeholder="e.g. 4.5"
+                  className="w-full px-3 py-2 rounded-lg border border-white/5 bg-black/30 text-white font-mono text-sm focus:outline-none focus:border-cyber-cyan"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStudyModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs text-slate-400 hover:text-white border border-white/5 hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingHours}
+                  className="cyber-btn py-2 px-4 text-xs font-semibold"
+                >
+                  {submittingHours ? 'Logging...' : 'Log Hours'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

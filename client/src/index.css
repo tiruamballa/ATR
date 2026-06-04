@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,40 +6,40 @@
 
 :root {
   /* BACKGROUNDS */
-  --bg-void:    #000000;   /* page background — pure black void */
-  --bg-surface: #0A0F1D;   /* sidebar, navbar */
-  --bg-card:    #0D111A;   /* card surfaces */
-  --bg-glass:   rgba(10, 15, 29, 0.7);
+  --bg-void:    #0B0F14;   /* page background */
+  --bg-surface: #111827;   /* sidebar, navbar */
+  --bg-card:    #151B26;   /* card surfaces */
+  --bg-glass:   rgba(17, 24, 39, 0.7);
 
-  /* ACCENTS — each has ONE meaning, never swap */
-  --cyan:   #00F5D4;   /* progress, completion, XP bars */
-  --purple: #7B61FF;   /* AI features, intelligence */
-  --red:    #FF6B6B;   /* deadlines, alerts, danger, wrong password */
-  --yellow: #FACC15;   /* streaks, achievements, XP gains */
-  --pink:   #F472B6;   /* milestones, special unlocks */
+  /* ACCENTS */
+  --cyan:   #22D3EE;   /* primary accent */
+  --purple: #8B5CF6;   /* secondary accent */
+  --red:    #EF4444;   /* danger */
+  --yellow: #F59E0B;   /* warning / streak */
+  --success: #22C55E;  /* success */
 
-  /* GLOW SHADOWS */
-  --glow-cyan:   0 0 20px rgba(0,245,212,0.35), 0 0 60px rgba(0,245,212,0.1);
-  --glow-purple: 0 0 20px rgba(123,97,255,0.35), 0 0 60px rgba(123,97,255,0.1);
-  --glow-red:    0 0 20px rgba(255,107,107,0.5), 0 0 60px rgba(255,107,107,0.15);
-  --glow-yellow: 0 0 20px rgba(250,204,21,0.4),  0 0 60px rgba(250,204,21,0.1);
+  /* SHADOWS */
+  --glow-cyan:   0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  --glow-purple: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  --glow-red:    0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  --glow-yellow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
 
   /* TEXT */
-  --text-primary:   #E2E8F0;
-  --text-secondary: #94A3B8;
-  --text-muted:     #475569;
-  --text-cyan:      #00F5D4;
+  --text-primary:   #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-muted:     #4B5563;
+  --text-cyan:      #22D3EE;
 
   /* BORDERS */
-  --border-dim:    1px solid rgba(255,255,255,0.06);
-  --border-cyan:   1px solid rgba(0,245,212,0.25);
-  --border-purple: 1px solid rgba(123,97,255,0.25);
-  --border-red:    1px solid rgba(255,107,107,0.4);
+  --border-dim:    1px solid rgba(255, 255, 255, 0.07);
+  --border-cyan:   1px solid rgba(34, 211, 238, 0.25);
+  --border-purple: 1px solid rgba(139, 92, 246, 0.25);
+  --border-red:    1px solid rgba(239, 68, 68, 0.4);
 
   /* TYPOGRAPHY */
-  --font-display: 'Orbitron', sans-serif;      /* HUD titles, level badges */
-  --font-body:    'Space Grotesk', sans-serif; /* all readable content */
-  --font-mono:    'JetBrains Mono', monospace; /* stats, numbers, code */
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
 }
 
 @layer base {
@@ -83,34 +83,12 @@
   border-radius: 12px;
   padding: 1.5rem;
   position: relative;
-  transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
-}
-
-.cyber-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 24px;
-  height: 3px;
-  background: var(--cyan);
-  border-radius: 2px;
-}
-
-.cyber-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 24px;
-  background: var(--cyan);
-  border-radius: 2px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .cyber-card:hover {
-  border-color: rgba(0, 245, 212, 0.3);
-  box-shadow: var(--glow-cyan);
+  border-color: rgba(34, 211, 238, 0.25);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
 }
 
 /* Cyber Glass Card */
@@ -122,11 +100,11 @@
   border-radius: 14px;
 }
 
-/* 3D Animations & Glitch Keyframes */
+/* Subtle motion animations */
 @keyframes float {
-  0% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
-  100% { transform: translateY(0px) rotate(0deg); }
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
 }
 
 .animate-float {
@@ -134,12 +112,12 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 2px var(--yellow)); }
-  50% { opacity: 1; filter: drop-shadow(0 0 12px var(--yellow)); }
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; }
 }
 
 .animate-glow-pulse {
-  animation: glowPulse 2s ease-in-out infinite;
+  animation: glowPulse 2.5s ease-in-out infinite;
 }
 
 @keyframes blink {
@@ -151,92 +129,52 @@
   animation: blink 1s step-end infinite;
 }
 
-/* Scanline animation */
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-
-.scanline-effect {
-  position: relative;
-  overflow: hidden;
-}
-
-.scanline-effect::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100px;
-  background: linear-gradient(to bottom, transparent, rgba(0, 245, 212, 0.05), transparent);
-  animation: scanline 6s linear infinite;
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* Cyber Button Styles */
+/* Modern Button Styles */
 .cyber-btn {
-  background: transparent;
-  border: 1px solid var(--btn-color, var(--cyan));
-  color: var(--btn-color, var(--cyan));
-  font-family: var(--font-display);
-  padding: 0.75rem 1.5rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.cyber-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
   background: var(--btn-color, var(--cyan));
-  z-index: -1;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.3s;
+  border: 1px solid var(--btn-color, var(--cyan));
+  color: var(--btn-text, #0B0F14);
+  font-family: var(--font-body);
+  padding: 0.625rem 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 8px;
 }
 
 .cyber-btn:hover {
-  color: var(--btn-text, #000);
-  box-shadow: 0 0 15px var(--btn-color, var(--cyan));
-}
-
-.cyber-btn:hover::before {
-  transform: scaleX(1);
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .cyber-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-/* Cyber Glass Input Styles */
+/* Modern Input Styles */
 .glass-input {
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
   font-family: var(--font-body);
-  border-radius: 4px;
-  padding: 0.65rem 1rem;
-  transition: all 0.3s;
+  border-radius: 8px;
+  padding: 0.625rem 1rem;
+  transition: all 0.2s;
 }
 
 .glass-input:focus {
   outline: none;
   border-color: var(--cyan);
-  box-shadow: 0 0 10px rgba(0, 245, 212, 0.2);
-  background: rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.15);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 select.glass-input option {

@@ -20,6 +20,7 @@ import Daily from './pages/Daily';
 import Resources from './pages/Resources';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Attendance from './pages/Attendance';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -88,6 +89,7 @@ const AppLayout = () => {
             <Route path="/resources" element={<PageWrapper><Resources /></PageWrapper>} />
             <Route path="/analytics" element={<PageWrapper><Analytics /></PageWrapper>} />
             <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
+            <Route path="/attendance" element={<PageWrapper><Attendance /></PageWrapper>} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
@@ -103,8 +105,6 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        {/* Cyber Canvas Background */}
-        <ParticleField />
         <Routes>
           {/* Guest routes */}
           <Route
