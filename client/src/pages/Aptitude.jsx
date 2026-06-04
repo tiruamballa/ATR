@@ -9,6 +9,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import CyberButton from '../components/CyberButton';
 
 const Aptitude = () => {
   const [topics, setTopics] = useState([]);
@@ -106,8 +107,11 @@ const Aptitude = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] font-mono text-xs text-cyber-cyan space-y-4">
+        <div className="w-48 bg-slate-950 border border-cyber-cyan/30 h-2 relative overflow-hidden">
+          <div className="absolute top-0 bottom-0 left-0 bg-cyber-cyan animate-pulse" style={{ width: '70%' }} />
+        </div>
+        <span className="animate-pulse tracking-widest uppercase">TUNING LOGIC CORES...</span>
       </div>
     );
   }
@@ -124,31 +128,31 @@ const Aptitude = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Practice log summary */}
-        <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-amber-500">
-          <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+        <div className="cyber-card p-6 border-l-4 border-l-cyber-yellow bg-black/45 shadow-[0_0_15px_rgba(250,204,21,0.03)]">
+          <span className="block text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">
             Total Questions Practiced
           </span>
-          <span className="text-3xl font-black text-white mt-1 block">
+          <span className="text-2xl font-display font-black text-white mt-1 block">
             {totalAttempted} Qs
           </span>
         </div>
 
         {/* Accuracy summaries */}
-        <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-emerald-500">
-          <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+        <div className="cyber-card p-6 border-l-4 border-l-cyber-cyan bg-black/45 shadow-[0_0_15px_rgba(0,245,212,0.03)]">
+          <span className="block text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">
             Average Aptitude Accuracy
           </span>
-          <span className="text-3xl font-black text-white mt-1 block">
+          <span className="text-2xl font-display font-black text-white mt-1 block">
             {avgAccuracy}%
           </span>
         </div>
 
         {/* Practice Session logger */}
-        <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-indigo-500">
-          <span className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">
-            Skills Mastered (&gt;80% Accuracy)
+        <div className="cyber-card p-6 border-l-4 border-l-cyber-purple bg-black/45 shadow-[0_0_15px_rgba(123,97,255,0.03)]">
+          <span className="block text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">
+            Modules Mastered (&gt;80% Accuracy)
           </span>
-          <span className="text-3xl font-black text-white mt-1 block">
+          <span className="text-2xl font-display font-black text-white mt-1 block">
             {topics.filter(t => t.accuracy >= 80).length} / {topics.length}
           </span>
         </div>
@@ -158,28 +162,28 @@ const Aptitude = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Update stats form */}
-        <div className="lg:col-span-1 glass-panel p-6 rounded-2xl flex flex-col justify-between">
+        <div className="lg:col-span-1 cyber-card p-6 border border-cyber-yellow/20 bg-black/45 flex flex-col justify-between shadow-[0_0_15px_rgba(250,204,21,0.03)]">
           <div className="space-y-4">
-            <h3 className="font-extrabold text-white text-base flex items-center gap-2">
-              <BrainCircuit size={18} className="text-amber-500" />
+            <h3 className="font-display font-black text-white text-xs tracking-wider flex items-center gap-2 mb-2 uppercase">
+              <BrainCircuit size={16} className="text-cyber-yellow animate-pulse" />
               Log Practice Session
             </h3>
 
             {message && (
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-1.5">
-                <CheckCircle2 size={14} /> <span>{message}</span>
+              <div className="p-2.5 rounded-lg bg-cyber-cyan/5 border border-cyber-cyan/20 text-cyber-cyan text-xs font-mono flex items-center gap-1.5 animate-pulse">
+                <CheckCircle2 size={13} /> <span>{message}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase mb-1.5">
                   Select Topic
                 </label>
                 <select
                   value={activeTopicId}
                   onChange={(e) => handleTopicSelect(e.target.value)}
-                  className="w-full glass-input bg-[#0A0F1D] text-xs text-white"
+                  className="w-full glass-input text-xs font-mono"
                 >
                   {topics.map((t) => (
                     <option key={t._id} value={t._id}>
@@ -190,7 +194,7 @@ const Aptitude = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase mb-1.5">
                   Questions Attempted
                 </label>
                 <input
@@ -199,12 +203,12 @@ const Aptitude = () => {
                   required
                   value={formData.attempted}
                   onChange={handleInputChange}
-                  className="w-full glass-input text-xs"
+                  className="w-full glass-input text-xs font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase mb-1.5">
                   Accuracy Percentage (%)
                 </label>
                 <input
@@ -214,17 +218,18 @@ const Aptitude = () => {
                   max={100}
                   value={formData.accuracy}
                   onChange={handleInputChange}
-                  className="w-full glass-input text-xs"
+                  className="w-full glass-input text-xs font-mono"
                 />
               </div>
 
-              <button
+              <CyberButton
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs disabled:opacity-50 transition-all cursor-pointer"
+                variant="yellow"
+                className="w-full py-2.5 text-xs font-bold"
               >
                 {submitting ? 'Updating...' : 'Update Topic Results'}
-              </button>
+              </CyberButton>
             </form>
           </div>
         </div>
@@ -233,44 +238,49 @@ const Aptitude = () => {
         <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {topics.map((topic) => {
             const isProficient = topic.accuracy >= 80;
+            const isActive = activeTopicId === topic._id;
             return (
               <div
                 key={topic._id}
                 onClick={() => handleTopicSelect(topic._id)}
-                className={`glass-panel p-5 rounded-2xl flex flex-col justify-between border cursor-pointer hover:border-amber-500/20 transition-all ${
-                  activeTopicId === topic._id ? 'ring-2 ring-amber-500/40 border-amber-500/30' : 'border-white/5'
+                className={`cyber-card p-5 bg-black/45 flex flex-col justify-between cursor-pointer border hover:border-cyber-yellow/40 transition-all duration-200 ${
+                  isActive 
+                    ? 'border-cyber-yellow/40 shadow-[0_0_15px_rgba(250,204,21,0.08)] bg-cyber-yellow/[0.01]' 
+                    : 'border-white/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="font-extrabold text-sm text-white">{topic.topicName}</h4>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${
+                  <h4 className="font-display font-bold text-xs text-white tracking-wide uppercase truncate mr-2">
+                    {topic.topicName}
+                  </h4>
+                  <span className={`text-[8px] font-mono font-bold px-2 py-0.5 rounded border flex-shrink-0 ${
                     isProficient
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-white/5 text-gray-500 border border-white/5'
+                      ? 'bg-cyber-cyan/5 text-cyber-cyan border-cyber-cyan/20'
+                      : 'bg-white/5 text-slate-500 border-white/5'
                   }`}>
-                    {isProficient ? 'Proficient ⭐️' : 'Needs Practice'}
+                    {isProficient ? 'READY ⭐️' : 'PRACTICE'}
                   </span>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-4 text-xs">
+                <div className="mt-4 grid grid-cols-2 gap-4 text-xs font-mono">
                   <div>
-                    <span className="block text-[10px] text-gray-500 font-bold uppercase">Attempted</span>
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase">Attempted</span>
                     <span className="font-bold text-white mt-0.5 block">{topic.attempted} Qs</span>
                   </div>
                   <div>
-                    <span className="block text-[10px] text-gray-500 font-bold uppercase">Accuracy</span>
-                    <span className={`font-bold mt-0.5 block ${isProficient ? 'text-emerald-400' : 'text-gray-300'}`}>
+                    <span className="block text-[8px] text-slate-500 font-bold uppercase">Accuracy</span>
+                    <span className={`font-bold mt-0.5 block ${isProficient ? 'text-cyber-cyan' : 'text-slate-300'}`}>
                       {topic.accuracy}%
                     </span>
                   </div>
                 </div>
 
-                <div className="text-[9px] text-gray-500 mt-4 border-t border-white/5 pt-2 flex items-center justify-between">
-                  <span>Last practiced:</span>
-                  <span>
+                <div className="text-[8px] font-mono text-slate-600 mt-4 border-t border-white/5 pt-2 flex items-center justify-between">
+                  <span>LAST PRACTICE:</span>
+                  <span className="uppercase">
                     {topic.lastPracticed
-                      ? new Date(topic.lastPracticed).toLocaleDateString()
-                      : 'Never'}
+                      ? new Date(topic.lastPracticed).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : 'NEVER'}
                   </span>
                 </div>
               </div>

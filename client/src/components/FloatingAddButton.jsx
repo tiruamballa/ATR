@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Calendar as CalendarIcon, Info } from 'lucide-react';
 import { apiRequest } from '../utils/api';
+import CyberButton from './CyberButton';
 
 const FloatingAddButton = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,12 +26,10 @@ const FloatingAddButton = () => {
           const data = await apiRequest('/phases');
           if (data.success && data.phases) {
             setPhases(data.phases);
-            // Default select to first phase if empty
             if (!formData.phaseId && data.phases.length > 0) {
               setFormData((prev) => ({
                 ...prev,
                 phaseId: data.phases[0]._id,
-                // Set default deadline to middle of that phase
                 deadline: `${data.phases[0].year}-${String(getMonthNumber(data.phases[0].monthName)).padStart(2, '0')}-15`,
               }));
             }
@@ -50,7 +49,6 @@ const FloatingAddButton = () => {
     setFormData((prev) => ({
       ...prev,
       phaseId: selectedPhaseId,
-      // Reset default deadline matching the year/month of selected phase
       deadline: selectedPhase
         ? `${selectedPhase.year}-${String(getMonthNumber(selectedPhase.monthName)).padStart(2, '0')}-15`
         : '',
@@ -80,10 +78,7 @@ const FloatingAddButton = () => {
       });
 
       if (data.success) {
-        // Dispatch custom global event so listing pages (Calendar/Tasks) refresh instantly
         window.dispatchEvent(new CustomEvent('taskCreated'));
-        
-        // Reset form and close
         setFormData({
           title: '',
           description: '',
@@ -115,29 +110,29 @@ const FloatingAddButton = () => {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white shadow-[0_4px_20px_rgba(6,182,212,0.4)] hover:shadow-[0_4px_25px_rgba(6,182,212,0.6)] hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer"
+        className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-12 h-12 rounded-xl bg-cyber-cyan text-black border border-cyber-cyan shadow-[0_0_15px_rgba(0,245,212,0.4)] hover:shadow-[0_0_25px_rgba(0,245,212,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
         title="Add Custom Task"
       >
-        <Plus size={28} />
+        <Plus size={22} />
       </button>
 
       {/* Task Creation Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           {/* Modal Card */}
           <div
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0F172A]/90 p-6 shadow-2xl glass-panel animate-float-delayed"
-            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-2xl border border-cyber-cyan/35 bg-[#0D111A] p-6 shadow-2xl relative"
+            style={{ boxShadow: 'var(--glow-cyan)' }}
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-white/5">
-              <h2 className="text-xl font-bold text-white flex items-center">
-                <CalendarIcon className="mr-2.5 text-cyan-400" size={20} />
-                Create Custom Roadmap Task
+              <h2 className="font-display font-bold text-sm tracking-wider uppercase text-white flex items-center">
+                <CalendarIcon className="mr-2.5 text-cyber-cyan" size={16} />
+                CREATE CUSTOM ROADMAP TASK
               </h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+                className="p-1 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white"
               >
                 <X size={18} />
               </button>
@@ -145,8 +140,8 @@ const FloatingAddButton = () => {
 
             {/* Error Message */}
             {error && (
-              <div className="mt-4 p-3 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400 text-sm flex items-start">
-                <Info size={16} className="mr-2 flex-shrink-0 mt-0.5" />
+              <div className="mt-4 p-3 rounded-xl bg-cyber-red/5 border border-cyber-red/20 text-cyber-red text-xs font-mono flex items-start">
+                <Info size={14} className="mr-2 flex-shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
             )}
@@ -154,8 +149,8 @@ const FloatingAddButton = () => {
             {/* Form */}
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Task Title
+                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  TASK TITLE
                 </label>
                 <input
                   type="text"
@@ -164,13 +159,13 @@ const FloatingAddButton = () => {
                   value={formData.title}
                   onChange={handleInputChange}
                   placeholder="e.g. Build authentication middleware flow"
-                  className="w-full glass-input"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-black/45 text-white font-mono text-xs focus:outline-none focus:border-cyber-cyan"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Description
+                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  DESCRIPTION
                 </label>
                 <textarea
                   name="description"
@@ -178,20 +173,20 @@ const FloatingAddButton = () => {
                   value={formData.description}
                   onChange={handleInputChange}
                   placeholder="Add details, hints, or instructions..."
-                  className="w-full glass-input resize-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-black/45 text-white font-body text-xs focus:outline-none focus:border-cyber-cyan resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                    Category
+                  <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    CATEGORY
                   </label>
                   <select
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full glass-input bg-[#0A0F1D] text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-white/5 bg-black/45 text-xs text-white font-mono focus:outline-none focus:border-cyber-cyan"
                   >
                     <option value="Development">Development</option>
                     <option value="DSA">DSA (Java)</option>
@@ -204,14 +199,14 @@ const FloatingAddButton = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                    Priority
+                  <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    PRIORITY
                   </label>
                   <select
                     name="priority"
                     value={formData.priority}
                     onChange={handleInputChange}
-                    className="w-full glass-input bg-[#0A0F1D] text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-white/5 bg-black/45 text-xs text-white font-mono focus:outline-none focus:border-cyber-cyan"
                   >
                     <option value="P1">P1 (Critical)</option>
                     <option value="P2">P2 (Medium)</option>
@@ -222,32 +217,32 @@ const FloatingAddButton = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                    Associate with Month
+                  <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    ASSOCIATE WITH MONTH
                   </label>
                   <select
                     name="phaseId"
                     value={formData.phaseId}
                     onChange={handlePhaseChange}
-                    className="w-full glass-input bg-[#0A0F1D] text-white text-xs"
+                    className="w-full px-3 py-2 rounded-xl border border-white/5 bg-black/45 text-xs text-white font-mono focus:outline-none focus:border-cyber-cyan"
                   >
                     {phases.map((p) => (
                       <option key={p._id} value={p._id}>
-                        {p.name} ({p.monthName} '{String(p.year).slice(-2)})
+                        {p.name.toUpperCase()} ({p.monthName} '{String(p.year).slice(-2)})
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                    Target Week
+                  <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    TARGET WEEK
                   </label>
                   <select
                     name="weekNumber"
                     value={formData.weekNumber}
                     onChange={handleInputChange}
-                    className="w-full glass-input bg-[#0A0F1D] text-white"
+                    className="w-full px-3 py-2 rounded-xl border border-white/5 bg-black/45 text-xs text-white font-mono focus:outline-none focus:border-cyber-cyan"
                   >
                     <option value={1}>Week 1</option>
                     <option value={2}>Week 2</option>
@@ -258,8 +253,8 @@ const FloatingAddButton = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  Target Deadline
+                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  TARGET DEADLINE
                 </label>
                 <input
                   type="date"
@@ -267,7 +262,7 @@ const FloatingAddButton = () => {
                   required
                   value={formData.deadline}
                   onChange={handleInputChange}
-                  className="w-full glass-input"
+                  className="w-full px-4 py-2.5 rounded-xl border border-white/5 bg-black/45 text-xs text-white font-mono focus:outline-none focus:border-cyber-cyan"
                 />
               </div>
 
@@ -276,17 +271,18 @@ const FloatingAddButton = () => {
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-sm font-semibold text-gray-400 hover:text-white transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-mono tracking-widest text-slate-400 hover:text-white transition-all cursor-pointer"
                 >
-                  Cancel
+                  CANCEL
                 </button>
-                <button
+                <CyberButton
                   type="submit"
+                  variant="cyan"
                   disabled={submitting}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-sm font-bold text-white shadow-lg disabled:opacity-50 transition-all cursor-pointer"
+                  className="text-xs py-2.5 px-5"
                 >
-                  {submitting ? 'Creating...' : 'Create Task'}
-                </button>
+                  {submitting ? 'CREATING...' : 'CREATE TASK'}
+                </CyberButton>
               </div>
             </form>
           </div>

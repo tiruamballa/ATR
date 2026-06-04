@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import FloatingAddButton from './components/FloatingAddButton';
+import ParticleField from './components/ParticleField';
+import PageWrapper from './components/PageWrapper';
 
 // Pages
 import Login from './pages/Login';
@@ -25,8 +27,8 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0A0F1D]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyber-cyan"></div>
       </div>
     );
   }
@@ -44,8 +46,8 @@ const GuestRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0A0F1D]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyber-cyan"></div>
       </div>
     );
   }
@@ -66,7 +68,7 @@ const AppLayout = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#0A0F1D] text-gray-100 font-sans relative">
+    <div className="min-h-screen flex bg-black text-gray-100 font-body relative">
       {/* Fixed/Responsive Sidebar */}
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
 
@@ -74,18 +76,18 @@ const AppLayout = () => {
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <Navbar toggleSidebar={toggleSidebar} />
         
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto z-10">
           <Routes>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/dsa" element={<DSA />} />
-            <Route path="/english" element={<English />} />
-            <Route path="/aptitude" element={<Aptitude />} />
-            <Route path="/daily" element={<Daily />} />
-            <Route path="/resources" element={<Resources />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
+            <Route path="/calendar" element={<PageWrapper><Calendar /></PageWrapper>} />
+            <Route path="/tasks" element={<PageWrapper><Tasks /></PageWrapper>} />
+            <Route path="/dsa" element={<PageWrapper><DSA /></PageWrapper>} />
+            <Route path="/english" element={<PageWrapper><English /></PageWrapper>} />
+            <Route path="/aptitude" element={<PageWrapper><Aptitude /></PageWrapper>} />
+            <Route path="/daily" element={<PageWrapper><Daily /></PageWrapper>} />
+            <Route path="/resources" element={<PageWrapper><Resources /></PageWrapper>} />
+            <Route path="/analytics" element={<PageWrapper><Analytics /></PageWrapper>} />
+            <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
@@ -101,13 +103,17 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        {/* Cyber Canvas Background */}
+        <ParticleField />
         <Routes>
           {/* Guest routes */}
           <Route
             path="/login"
             element={
               <GuestRoute>
-                <Login />
+                <PageWrapper>
+                  <Login />
+                </PageWrapper>
               </GuestRoute>
             }
           />

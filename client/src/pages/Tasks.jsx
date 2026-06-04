@@ -109,8 +109,11 @@ const Tasks = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] font-mono text-xs text-cyber-cyan space-y-4">
+        <div className="w-48 bg-slate-950 border border-cyber-cyan/30 h-2 relative overflow-hidden">
+          <div className="absolute top-0 bottom-0 left-0 bg-cyber-cyan animate-pulse" style={{ width: '60%' }} />
+        </div>
+        <span className="animate-pulse tracking-widest uppercase">LOADING BACKLOG INTEL...</span>
       </div>
     );
   }
@@ -119,26 +122,26 @@ const Tasks = () => {
     <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
       
       {/* Search & Filter Header card */}
-      <div className="glass-panel p-5 rounded-2xl space-y-4">
+      <div className="cyber-card p-6 border border-cyber-cyan/15 bg-black/45 shadow-[0_0_15px_rgba(0,245,212,0.03)] space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           
           {/* Search bar */}
           <div className="relative flex-1">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
               <Search size={16} />
             </span>
             <input
               type="text"
-              placeholder="Search tasks by keyword..."
+              placeholder="Filter tasks by code keyword or module..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 glass-input text-sm py-2.5"
+              className="w-full pl-11 glass-input text-xs font-mono"
             />
           </div>
 
           {/* Sliders icons */}
-          <div className="flex items-center space-x-2 text-xs font-bold text-gray-400">
-            <SlidersHorizontal size={14} />
+          <div className="flex items-center space-x-2 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest">
+            <SlidersHorizontal size={12} className="text-cyber-cyan" />
             <span>Roadmap Backlog Filters</span>
           </div>
         </div>
@@ -146,13 +149,13 @@ const Tasks = () => {
         {/* Filters dropdown row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+            <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1.5">
               Category
             </label>
             <select
               value={catFilter}
               onChange={(e) => setCatFilter(e.target.value)}
-              className="w-full glass-input bg-[#0A0F1D] text-xs py-2 text-white"
+              className="w-full glass-input text-xs font-mono"
             >
               <option value="All">All Categories</option>
               <option value="Development">Development</option>
@@ -165,13 +168,13 @@ const Tasks = () => {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+            <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1.5">
               Priority
             </label>
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full glass-input bg-[#0A0F1D] text-xs py-2 text-white"
+              className="w-full glass-input text-xs font-mono"
             >
               <option value="All">All Priorities</option>
               <option value="P1">P1 (Critical)</option>
@@ -181,13 +184,13 @@ const Tasks = () => {
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1.5">
+            <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1.5">
               Status
             </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full glass-input bg-[#0A0F1D] text-xs py-2 text-white"
+              className="w-full glass-input text-xs font-mono"
             >
               <option value="All">All Statuses</option>
               <option value="Pending">Pending</option>
@@ -199,14 +202,14 @@ const Tasks = () => {
       </div>
 
       {/* Task Listing */}
-      <div className="glass-panel rounded-2xl overflow-hidden border border-white/5">
-        <div className="px-5 py-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
-          <h3 className="font-extrabold text-white text-sm flex items-center gap-2">
-            <ListTodo size={18} className="text-cyan-400" />
-            Active Tasks Backlog
+      <div className="cyber-card p-0 border border-white/5 overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+          <h3 className="font-display font-black text-white text-xs tracking-wider flex items-center gap-2 uppercase">
+            <ListTodo size={16} className="text-cyber-cyan" />
+            Active Mission Backlog
           </h3>
-          <span className="text-xs text-gray-500 font-bold">
-            Showing {filteredTasks.length} of {tasks.length} tasks
+          <span className="text-[10px] text-slate-500 font-mono font-bold">
+            SHOWING {filteredTasks.length} / {tasks.length} QUEUED TASKS
           </span>
         </div>
 
@@ -217,70 +220,72 @@ const Tasks = () => {
               return (
                 <div
                   key={task._id}
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 transition-all ${
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 transition-all duration-200 ${
                     isCompleted
-                      ? 'bg-emerald-500/5 text-gray-500 line-through'
-                      : 'bg-white/5 hover:bg-white/10 text-white'
+                      ? 'bg-cyber-cyan/[0.02] text-slate-500 line-through border-l-2 border-l-cyber-cyan/40'
+                      : 'bg-black/20 hover:bg-white/[0.02] border-l-2 border-l-transparent text-white'
                   }`}
                 >
                   {/* Left: Check and Title */}
                   <div className="flex items-start space-x-3.5 flex-1 min-w-0">
                     <button
                       onClick={() => handleToggleStatus(task)}
-                      className="mt-0.5 flex-shrink-0 text-gray-500 hover:text-cyan-400 transition-colors cursor-pointer"
+                      className="mt-0.5 flex-shrink-0 text-slate-500 hover:text-cyber-cyan transition-colors cursor-pointer focus:outline-none"
                     >
                       {isCompleted ? (
-                        <CheckCircle2 size={18} className="text-emerald-500 fill-emerald-500/20" />
+                        <div className="w-4.5 h-4.5 border border-cyber-cyan bg-cyber-cyan/15 flex items-center justify-center rounded-sm transition-all text-cyber-cyan font-bold font-mono text-[10px]">
+                          ✓
+                        </div>
                       ) : (
-                        <Circle size={18} />
+                        <div className="w-4.5 h-4.5 border border-slate-600 hover:border-cyber-cyan flex items-center justify-center rounded-sm transition-all" />
                       )}
                     </button>
                     <div className="min-w-0">
-                      <h4 className={`text-sm font-semibold leading-relaxed ${isCompleted ? 'text-gray-500' : 'text-gray-200'}`}>
+                      <h4 className={`text-xs font-semibold font-mono tracking-wide leading-relaxed ${isCompleted ? 'text-slate-500' : 'text-slate-200'}`}>
                         {task.title}
                       </h4>
                       {task.description && (
-                        <p className="text-xs text-gray-400 mt-1 line-clamp-1">{task.description}</p>
+                        <p className="text-[11px] text-slate-400 font-body mt-1 line-clamp-1">{task.description}</p>
                       )}
                     </div>
                   </div>
 
                   {/* Right: Badges & Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 text-xs font-bold uppercase tracking-wider">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 text-[9px] font-mono font-bold uppercase tracking-wider">
                     {/* Category */}
-                    <span className={`px-2 py-0.5 rounded-md ${
+                    <span className={`px-2.5 py-0.5 rounded border ${
                       task.category === 'DSA'
-                        ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                        ? 'bg-cyber-cyan/5 text-cyber-cyan border-cyber-cyan/20'
                         : task.category === 'English'
-                        ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                        ? 'bg-cyber-purple/5 text-cyber-purple border-cyber-purple/20'
                         : task.category === 'Aptitude'
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                        ? 'bg-cyber-yellow/5 text-cyber-yellow border-cyber-yellow/20'
+                        : 'bg-cyber-pink/5 text-cyber-pink border-cyber-pink/20'
                     }`}>
                       {task.category}
                     </span>
 
                     {/* Priority */}
-                    <span className={`px-2 py-0.5 rounded-md border ${getPriorityColor(task.priority)}`}>
+                    <span className={`px-2.5 py-0.5 rounded border ${getPriorityColor(task.priority)}`}>
                       {task.priority}
                     </span>
 
                     {/* Actions Panel */}
-                    <div className="flex items-center space-x-2 text-gray-500 ml-2">
+                    <div className="flex items-center space-x-2 text-slate-500 ml-2">
                       <button
                         onClick={() => handleDuplicate(task)}
                         title="Duplicate Task"
-                        className="p-1 rounded hover:bg-white/5 hover:text-cyan-400 transition-all cursor-pointer"
+                        className="p-1.5 rounded bg-white/5 hover:bg-cyber-cyan/10 hover:text-cyber-cyan transition-all border border-white/5 cursor-pointer"
                       >
-                        <Copy size={13} />
+                        <Copy size={11} />
                       </button>
                       {task.isCustom && (
                         <button
                           onClick={() => handleDelete(task._id)}
                           title="Delete Custom Task"
-                          className="p-1 rounded hover:bg-white/5 hover:text-pink-500 transition-all cursor-pointer"
+                          className="p-1.5 rounded bg-white/5 hover:bg-cyber-red/10 hover:text-cyber-red transition-all border border-white/5 cursor-pointer"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={11} />
                         </button>
                       )}
                     </div>
@@ -289,9 +294,9 @@ const Tasks = () => {
               );
             })
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-500 space-y-2">
-              <AlertCircle size={24} className="text-gray-600 animate-bounce" />
-              <span className="text-sm font-semibold italic">No matching tasks found</span>
+            <div className="flex flex-col items-center justify-center py-16 text-slate-500 space-y-3 font-mono">
+              <AlertCircle size={22} className="text-slate-600 animate-bounce" />
+              <span className="text-xs font-semibold italic tracking-wider">NO MATCHING BACKLOG MODULES FOUND</span>
             </div>
           )}
         </div>

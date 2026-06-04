@@ -222,3 +222,49 @@ exports.getStreak = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Reset daily progress checklist and streak
+// @route   POST /api/daily/reset
+// @access  Private
+exports.resetDailyProgress = async (req, res, next) => {
+  try {
+    const dateStr = getDateString();
+    
+    // 1. Reset today's checklist
+    let progress = await DailyProgress.findOne({ userId: req.user.id, date: dateStr });
+    if (progress) {
+      progress.allCompleted = false;
+      progress.checklist = progress.checklist.map(item => ({
+        ...item,
+        completed: false
+      }));
+      await progress.save();
+    }
+
+    // 2. Reset streak
+    let streakObj = await Streak.findOne({ userId: req.user.id });
+    if (streakObj) {
+      streakObj.currentStreak = 0;
+      streakObj.longestStreak = 0;
+      streakObj.lastCompletedDate = null;
+      await streakObj.save();
+    } else {
+      streakObj = await Streak.create({
+        userId: req.user.id,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastCompletedDate: null
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Daily tracking and streak counters have been reset. Backlog tasks preserved.',
+      progress,
+      streak: streakObj
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
