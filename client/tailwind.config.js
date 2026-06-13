@@ -8,11 +8,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        void: '#0B0F14',
-        surface: '#111827',
-        card: '#151B26',
+        void: '#0F172A',
+        surface: '#1E293B',
+        card: '#1E293B',
         cyber: {
-          cyan: '#22D3EE',
+          cyan: '#3B82F6',
           purple: '#8B5CF6',
           red: '#EF4444',
           yellow: '#F59E0B',
@@ -26,15 +26,15 @@ export default {
         mono:    ['JetBrains Mono', 'monospace'],
       },
       boxShadow: {
-        'cyan':   '0 4px 20px -2px rgba(0, 0, 0, 0.4)',
-        'purple': '0 4px 20px -2px rgba(0, 0, 0, 0.4)',
-        'red':    '0 4px 20px -2px rgba(0, 0, 0, 0.4)',
-        'yellow': '0 4px 20px -2px rgba(0, 0, 0, 0.4)',
+        'cyan':   'none',
+        'purple': 'none',
+        'red':    'none',
+        'yellow': 'none',
       },
       animation: {
         'float':      'float 4s ease-in-out infinite',
-        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
-        'scanline':   'scanline 6s linear infinite',
+        'glow-pulse': 'none',
+        'scanline':   'none',
       }
     },
   },

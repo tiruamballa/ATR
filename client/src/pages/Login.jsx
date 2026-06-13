@@ -200,11 +200,11 @@ const Login = () => {
             <div className="font-mono text-[9px] text-slate-500 tracking-[0.25em] mb-2 uppercase">
               ░░ IDENTITY VERIFICATION ░░
             </div>
-            <h1 className="text-2xl font-black tracking-widest text-cyber-cyan text-shadow-[0_0_15px_rgba(0,245,212,0.6)] font-display">
-              ATR OS v2.0
+            <h1 className="text-3xl font-black tracking-widest text-cyber-cyan text-shadow-[0_0_15px_rgba(0,245,212,0.6)] font-display">
+              ATR
             </h1>
-            <p className="text-xs text-slate-400 mt-2 font-body">
-              Academic & Technical Roadmap Tracker • tiruamballa
+            <p className="text-xs text-slate-400 mt-2 font-mono tracking-wider">
+              Tiru Naidu
             </p>
           </div>
 

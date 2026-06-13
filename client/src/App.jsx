@@ -12,15 +12,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
-import Tasks from './pages/Tasks';
 import DSA from './pages/DSA';
-import English from './pages/English';
 import Aptitude from './pages/Aptitude';
-import Daily from './pages/Daily';
-import Resources from './pages/Resources';
-import Analytics from './pages/Analytics';
-import Settings from './pages/Settings';
 import Attendance from './pages/Attendance';
+import Settings from './pages/Settings';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -81,15 +76,10 @@ const AppLayout = () => {
           <Routes>
             <Route path="/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
             <Route path="/calendar" element={<PageWrapper><Calendar /></PageWrapper>} />
-            <Route path="/tasks" element={<PageWrapper><Tasks /></PageWrapper>} />
             <Route path="/dsa" element={<PageWrapper><DSA /></PageWrapper>} />
-            <Route path="/english" element={<PageWrapper><English /></PageWrapper>} />
             <Route path="/aptitude" element={<PageWrapper><Aptitude /></PageWrapper>} />
-            <Route path="/daily" element={<PageWrapper><Daily /></PageWrapper>} />
-            <Route path="/resources" element={<PageWrapper><Resources /></PageWrapper>} />
-            <Route path="/analytics" element={<PageWrapper><Analytics /></PageWrapper>} />
-            <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
             <Route path="/attendance" element={<PageWrapper><Attendance /></PageWrapper>} />
+            <Route path="/settings" element={<PageWrapper><Settings /></PageWrapper>} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>

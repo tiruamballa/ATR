@@ -1,235 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
-import {
-  Calendar as CalendarIcon,
-  CheckCircle2,
-  Circle,
-  Copy,
-  Clock,
-  Layers,
-  ArrowRightLeft,
-  Trash2
-} from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle2, Circle, Layers } from 'lucide-react';
 import TiltCard from '../components/TiltCard';
-import CyberButton from '../components/CyberButton';
 import XPBar from '../components/XPBar';
 
 const Calendar = () => {
   const [phases, setPhases] = useState([]);
   const [selectedPhase, setSelectedPhase] = useState(null);
-  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Modals state
-  const [showMoveModal, setShowMoveModal] = useState(false);
-  const [activeTask, setActiveTask] = useState(null);
-  const [targetPhaseId, setTargetPhaseId] = useState('');
-  const [targetWeekNum, setTargetWeekNum] = useState(1);
-
-  // Selector and Toggle States
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [weeksOpen, setWeeksOpen] = useState(false);
 
-  const fetchPhasesAndTasks = async () => {
+  const fetchPhases = async () => {
     try {
-      const phasesRes = await apiRequest('/phases');
-      if (phasesRes.success && phasesRes.phases.length > 0) {
-        // Sort phases by year and month index to ensure timeline chronology
-        const sortedPhases = [...phasesRes.phases].sort((a, b) => {
+      const res = await apiRequest('/phases');
+      if (res.success && res.phases.length > 0) {
+        // Sort chronologically
+        const sorted = [...res.phases].sort((a, b) => {
           if (a.year !== b.year) return a.year - b.year;
           return a.monthIndex - b.monthIndex;
         });
-        setPhases(sortedPhases);
-        
-        // Find current phase based on index or set default to index 0
+        setPhases(sorted);
+
+        // Find active phase
         const activeRes = await apiRequest('/phases/current');
-        let initialPhase = sortedPhases[0];
+        let initialPhase = sorted[0];
         if (activeRes.success && activeRes.phase) {
-          const found = sortedPhases.find(p => p._id === activeRes.phase._id);
+          const found = sorted.find(p => p._id === activeRes.phase._id);
           if (found) initialPhase = found;
         }
-        
         setSelectedPhase(initialPhase);
-        await fetchTasks(initialPhase._id);
       }
     } catch (err) {
-      console.error('Error fetching calendar base data:', err);
+      console.error('Error loading roadmap phases:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchTasks = async (phaseId) => {
-    try {
-      const tasksRes = await apiRequest(`/tasks?phaseId=${phaseId}`);
-      if (tasksRes.success) {
-        setTasks(tasksRes.tasks);
-      }
-    } catch (err) {
-      console.error('Error fetching phase tasks:', err);
-    }
-  };
-
   useEffect(() => {
-    fetchPhasesAndTasks();
-
-    // Listen for custom taskCreated events to reload data
-    const handleTaskCreated = () => {
-      if (selectedPhase) fetchTasks(selectedPhase._id);
-    };
-    window.addEventListener('taskCreated', handleTaskCreated);
-    return () => {
-      window.removeEventListener('taskCreated', handleTaskCreated);
-    };
-  }, [selectedPhase]);
-
-  const handlePhaseSelect = async (phase) => {
-    setSelectedPhase(phase);
-    await fetchTasks(phase._id);
-    setWeeksOpen(false); // Hide weeks initially on change to match Month Card workflow
-  };
-
-  // Toggle task completion
-  const handleToggleTask = async (task) => {
-    const nextStatus = task.status === 'Completed' ? 'Pending' : 'Completed';
-    try {
-      const data = await apiRequest(`/tasks/${task._id}`, {
-        method: 'PUT',
-        body: { status: nextStatus },
-      });
-      if (data.success) {
-        setTasks((prev) =>
-          prev.map((t) => (t._id === task._id ? { ...t, status: nextStatus } : t))
-        );
-        // Refresh selected phase stats
-        const updatedPhases = await apiRequest('/phases');
-        if (updatedPhases.success) {
-          setPhases(updatedPhases.phases);
-          const currentUpdated = updatedPhases.phases.find((p) => p._id === selectedPhase._id);
-          if (currentUpdated) setSelectedPhase(currentUpdated);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to toggle task:', err);
-    }
-  };
-
-  // Duplicate task
-  const handleDuplicateTask = async (task) => {
-    try {
-      const data = await apiRequest(`/tasks/${task._id}/duplicate`, {
-        method: 'POST',
-      });
-      if (data.success && data.task) {
-        setTasks((prev) => [...prev, data.task]);
-      }
-    } catch (err) {
-      console.error('Failed to duplicate task:', err);
-    }
-  };
-
-  // Delete task
-  const handleDeleteTask = async (taskId) => {
-    try {
-      const data = await apiRequest(`/tasks/${taskId}`, {
-        method: 'DELETE',
-      });
-      if (data.success) {
-        setTasks((prev) => prev.filter((t) => t._id !== taskId));
-      }
-    } catch (err) {
-      console.error('Failed to delete task:', err);
-    }
-  };
-
-  // Migrate task open modal
-  const openMoveModal = (task) => {
-    setActiveTask(task);
-    setTargetPhaseId(task.phaseId);
-    setTargetWeekNum(task.weekNumber);
-    setShowMoveModal(true);
-  };
-
-  // Move task trigger
-  const handleMoveTaskSubmit = async (e) => {
-    e.preventDefault();
-    if (!activeTask) return;
-
-    try {
-      const data = await apiRequest(`/tasks/${activeTask._id}/move`, {
-        method: 'PUT',
-        body: {
-          targetPhaseId,
-          targetWeek: Number(targetWeekNum),
-        },
-      });
-
-      if (data.success) {
-        if (targetPhaseId !== selectedPhase._id) {
-          setTasks((prev) => prev.filter((t) => t._id !== activeTask._id));
-        } else {
-          setTasks((prev) =>
-            prev.map((t) =>
-              t._id === activeTask._id ? { ...t, weekNumber: Number(targetWeekNum) } : t
-            )
-          );
-        }
-        setShowMoveModal(false);
-        setActiveTask(null);
-      }
-    } catch (err) {
-      console.error('Failed to migrate task:', err);
-    }
-  };
+    fetchPhases();
+  }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyber-cyan"></div>
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyber-cyan" />
       </div>
     );
   }
 
-  const getTasksByWeek = (weekNum) => {
-    return tasks.filter((t) => t.weekNumber === weekNum);
-  };
-
-  // Group phases by year for timeline structure
-  const phasesByYear = phases.reduce((acc, phase) => {
-    const yr = phase.year;
+  // Group phases by year
+  const phasesByYear = phases.reduce((acc, p) => {
+    const yr = p.year;
     if (!acc[yr]) acc[yr] = [];
-    acc[yr].push(phase);
+    acc[yr].push(p);
     return acc;
   }, {});
 
-  // Dynamic Skill Focus mapper
-  const getPhaseMeta = (phase) => {
-    if (!phase) return { focus: '', topics: '' };
-    const name = phase.name.toLowerCase();
-    if (name.includes('ignition')) {
-      return { focus: 'Frontend Foundations', topics: 'HTML, CSS, JavaScript, Git' };
-    } else if (name.includes('reactor')) {
-      return { focus: 'React Engineering', topics: 'React Core, State, Hooks, SQL Relational DBs' };
-    } else if (name.includes('backend')) {
-      return { focus: 'Backend Architecture', topics: 'NodeJS, Express, REST APIs, MongoDB' };
-    } else if (name.includes('launchpad')) {
-      return { focus: 'AI & LLM Integration', topics: 'OpenAI APIs, Vector Embeddings, RAG, LangChain' };
-    } else if (name.includes('quest')) {
-      return { focus: 'Data Analytics', topics: 'Python, Pandas, Seaborn plots, Model APIs' };
-    } else if (name.includes('foundations')) {
-      return { focus: 'Software Engineering', topics: 'OOPs Java, SOLID Principles, System Architecture' };
-    } else if (name.includes('infrastructure')) {
-      return { focus: 'OS & Docker Networking', topics: 'Processes & Threads, TCP/UDP, Containers' };
-    } else if (name.includes('arena')) {
-      return { focus: 'Mock Assessments & Cloud', topics: 'AWS, Jest Unit Testing, Mock Placements' };
-    } else if (name.includes('sprint')) {
-      return { focus: 'Placement Season Ready', topics: 'Mock Interviews, Dynamic Programming' };
-    } else {
-      return { focus: phase.primarySkill, topics: phase.goal.split('.')[0] };
-    }
-  };
-
-  // Dynamic Week names generator based on phase topics
+  // Dynamic week names helper
   const getWeekName = (phaseName, weekNum) => {
     const name = (phaseName || '').toLowerCase();
     const weekNames = {
@@ -249,35 +77,30 @@ const Calendar = () => {
       return weekNames[matchedKey][weekNum - 1];
     }
     
-    const focusWord = phaseName ? phaseName.split(' ')[0] : 'Skill';
-    const defaults = [
-      `${focusWord} Foundations`,
-      `${focusWord} Core Lab`,
-      `${focusWord} Advanced Patterns`,
-      `${focusWord} Capstone Sprint`
-    ];
-    return defaults[weekNum - 1];
+    return `Week ${weekNum} Focus`;
   };
+
+
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
       
-      {/* Selector Header Bar with Lucide Icon */}
+      {/* ── HEADER NAVIGATION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
         <div>
-          <div className="font-display text-[10px] text-slate-500 tracking-[0.2em] uppercase mb-1">
-            Roadmap Timeline
+          <div className="font-display text-[9px] text-slate-500 tracking-[0.2em] uppercase mb-1 font-mono">
+            Roadmap Timelines
           </div>
           <h1 className="text-2xl font-black font-display text-white tracking-widest">
-            JOURNEY SCHEDULE
+            ROADMAP OVERVIEW
           </h1>
         </div>
 
-        {/* Dropdown selector */}
+        {/* Dropdown Selector */}
         <div className="relative inline-block text-left">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center space-x-2.5 px-4 py-2.5 rounded-lg border border-white/10 hover:border-cyber-cyan bg-white/5 hover:bg-cyber-cyan/5 text-white font-mono text-xs tracking-wider transition-all duration-200 cursor-pointer"
+            className="flex items-center space-x-2.5 px-4 py-2.5 rounded-lg border border-white/10 hover:border-cyber-cyan bg-white/5 hover:bg-cyber-cyan/5 text-white font-mono text-xs tracking-wider transition-all cursor-pointer"
           >
             <CalendarIcon size={14} className="text-cyber-cyan" />
             <span className="font-display font-semibold uppercase tracking-wider">
@@ -300,7 +123,7 @@ const Calendar = () => {
                         <div
                           key={phase._id}
                           onClick={() => {
-                            handlePhaseSelect(phase);
+                            setSelectedPhase(phase);
                             setDropdownOpen(false);
                           }}
                           className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 ${
@@ -328,7 +151,7 @@ const Calendar = () => {
         </div>
       </div>
 
-      {/* Premium Month Card */}
+      {/* ── PHASE HIGHLIGHT CARD */}
       {selectedPhase && (
         <div className="bg-[#151B26] border border-white/5 rounded-xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-3 flex-1">
@@ -349,136 +172,94 @@ const Calendar = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
               <div>
                 <span className="block text-slate-500 uppercase tracking-widest text-[9px] font-bold font-mono">Skill Focus</span>
-                <span className="text-white font-semibold">{getPhaseMeta(selectedPhase).focus}</span>
+                <span className="text-white font-semibold">{selectedPhase.primarySkill}</span>
               </div>
               <div>
-                <span className="block text-slate-500 uppercase tracking-widest text-[9px] font-bold font-mono">Core Topics</span>
-                <span className="text-slate-300">{getPhaseMeta(selectedPhase).topics}</span>
+                <span className="block text-slate-500 uppercase tracking-widest text-[9px] font-bold font-mono">Month Goal Description</span>
+                <span className="text-slate-300 font-semibold block mt-0.5">{selectedPhase.goal}</span>
               </div>
             </div>
           </div>
 
-          {/* Progress & Toggle */}
-          <div className="w-full md:w-64 space-y-4 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
+          {/* Completion Meter */}
+          <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6">
             <XPBar
-              label="MONTHLY COMPLETION"
-              current={Math.round(selectedPhase.completionPercentage)}
+              label="PHASE COMPLETION %"
+              current={Math.round(selectedPhase.completionPercentage || 0)}
               max={100}
               color="#22D3EE"
             />
-            
-            <button
-              onClick={() => setWeeksOpen(!weeksOpen)}
-              className="cyber-btn w-full py-2.5 text-xs font-semibold"
-            >
-              {weeksOpen ? 'Hide Week Details' : 'Open Weeks'}
-            </button>
           </div>
         </div>
       )}
 
-      {/* 4-Week Grid View */}
-      {weeksOpen && (
+      {/* ── 4-WEEK SYLLABUS CARDS GRID */}
+      {selectedPhase && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1, 2, 3, 4].map((weekNum) => {
-            const weekTasks = getTasksByWeek(weekNum);
-            const creativeWeekName = getWeekName(selectedPhase?.name, weekNum);
+          {selectedPhase.weeks.map((w) => {
+            const creativeWeekName = getWeekName(selectedPhase.name, w.weekNumber);
+            const total = w.topics.length;
+            const completed = w.topics.filter(t => t.isCompleted).length;
+            const completionPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
             return (
-              <TiltCard key={weekNum}>
-                <div className="cyber-card flex flex-col min-h-[300px] h-full justify-between">
+              <TiltCard key={w.weekNumber}>
+                <div className="cyber-card flex flex-col min-h-[320px] h-full justify-between">
                   <div>
-                    {/* Week Header */}
+                    {/* Card Header */}
                     <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
                       <div>
-                        <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider block">Week {weekNum}</span>
+                        <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider block">Week {w.weekNumber}</span>
                         <h3 className="font-display font-bold text-xs tracking-wider uppercase text-white mt-0.5">
                           {creativeWeekName}
                         </h3>
                       </div>
-                      <span className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] font-mono text-slate-500">
-                        {weekTasks.length} {weekTasks.length === 1 ? 'TASK' : 'TASKS'}
+                      <span className="px-2 py-0.5 rounded bg-cyber-cyan/10 border border-cyber-cyan/20 text-[9px] font-mono text-cyber-cyan font-bold">
+                        {completionPercent}% DONE
                       </span>
                     </div>
 
-                    {/* Quest Items List */}
-                    <div className="space-y-3.5">
-                      {weekTasks.length > 0 ? (
-                        weekTasks.map((task) => {
-                          const isCompleted = task.status === 'Completed';
-                          return (
-                            <div
-                              key={task._id}
-                              className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-3 transition-all relative group ${
-                                isCompleted
-                                  ? 'bg-cyber-cyan/5 border-cyber-cyan/15 text-slate-500 line-through'
-                                  : 'bg-white/5 border-white/5 hover:border-cyber-cyan/25 text-white'
-                              }`}
-                            >
-                              {/* Title and checkbox */}
-                              <div className="flex items-start space-x-2.5">
-                                <button
-                                  onClick={() => handleToggleTask(task)}
-                                  className="mt-0.5 flex-shrink-0 text-slate-500 hover:text-cyber-cyan transition-colors cursor-pointer"
-                                >
-                                  {isCompleted ? (
-                                    <CheckCircle2 size={16} className="text-cyber-cyan fill-cyber-cyan/15" />
-                                  ) : (
-                                    <Circle size={16} />
-                                  )}
-                                </button>
-                                <span className={`text-xs font-body font-medium leading-relaxed ${isCompleted ? 'text-slate-500' : 'text-slate-200'}`}>
-                                  {task.title}
-                                </span>
-                              </div>
-
-                              {/* Category Badge & Actions */}
-                              <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[9px] font-mono font-bold tracking-wider">
-                                <span className={`px-1.5 py-0.5 rounded ${
-                                  task.category === 'DSA'
-                                    ? 'bg-cyber-cyan/10 text-cyber-cyan'
-                                    : task.category === 'English'
-                                    ? 'bg-cyber-purple/10 text-cyber-purple'
-                                    : task.category === 'Aptitude'
-                                    ? 'bg-cyber-yellow/10 text-cyber-yellow'
-                                    : 'bg-white/5 text-slate-400'
-                                }`}>
-                                  {task.category}
-                                </span>
-
-                                {/* Inline actions bar */}
-                                <div className="flex items-center space-x-3 text-slate-500">
-                                  <button
-                                    onClick={() => handleDuplicateTask(task)}
-                                    title="Duplicate Task"
-                                    className="hover:text-cyber-cyan transition-all cursor-pointer"
-                                  >
-                                    <Copy size={11} />
-                                  </button>
-                                  <button
-                                    onClick={() => openMoveModal(task)}
-                                    title="Migrate/Move Task"
-                                    className="hover:text-cyber-purple transition-all cursor-pointer"
-                                  >
-                                    <ArrowRightLeft size={11} />
-                                  </button>
-                                  {task.isCustom && (
-                                    <button
-                                      onClick={() => handleDeleteTask(task._id)}
-                                      title="Delete Task"
-                                      className="hover:text-cyber-red transition-all cursor-pointer"
-                                    >
-                                      <Trash2 size={11} />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
+                    {/* Topics Sub-Checklist */}
+                    <div className="space-y-3">
+                      {w.topics.length > 0 ? (
+                        w.topics.map((topic) => (
+                          <div
+                            key={topic._id}
+                            className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                              topic.isCompleted
+                                ? 'bg-cyber-cyan/5 border-cyber-cyan/15 text-slate-500 line-through'
+                                : 'bg-white/5 border-white/5 text-white'
+                            }`}
+                          >
+                            <div className="flex items-start space-x-2.5 min-w-0">
+                              <span className="mt-0.5 flex-shrink-0 text-slate-500">
+                                {topic.isCompleted ? (
+                                  <CheckCircle2 size={15} className="text-cyber-cyan" />
+                                ) : (
+                                  <Circle size={15} className="text-slate-500" />
+                                )}
+                              </span>
+                              <span className={`text-[11px] font-mono leading-relaxed truncate ${topic.isCompleted ? 'text-slate-500' : 'text-slate-200'}`}>
+                                {topic.name}
+                              </span>
                             </div>
-                          );
-                        })
+
+                            <span className={`px-2 py-0.5 text-[8px] font-mono font-bold uppercase tracking-wider rounded ${
+                              topic.category === 'DSA'
+                                ? 'bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/10'
+                                : topic.category === 'Aptitude'
+                                ? 'bg-cyber-yellow/10 text-cyber-yellow border border-cyber-yellow/10'
+                                : topic.category === 'IP Skills'
+                                ? 'bg-cyber-purple/10 text-cyber-purple border border-cyber-purple/10'
+                                : 'bg-white/5 text-slate-400 border border-white/5'
+                            }`}>
+                              {topic.category}
+                            </span>
+                          </div>
+                        ))
                       ) : (
                         <div className="flex items-center justify-center text-xs text-slate-600 italic py-12 font-mono">
-                          No tasks scheduled
+                          No targets defined for this week.
                         </div>
                       )}
                     </div>
@@ -490,85 +271,6 @@ const Calendar = () => {
         </div>
       )}
 
-      {/* Dynamic migration modal */}
-      {showMoveModal && activeTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-cyber-cyan/35 bg-[#0D111A] p-6 shadow-2xl relative">
-            
-            <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
-              <h3 className="font-display font-bold text-white text-xs tracking-widest uppercase">MIGRATE ROADMAP TASK</h3>
-              <button
-                onClick={() => {
-                  setShowMoveModal(false);
-                  setActiveTask(null);
-                }}
-                className="p-1 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white"
-              >
-                &times;
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400 mb-4 font-mono leading-relaxed">
-              MOVING TASK: <strong className="text-white">"{activeTask.title}"</strong>
-            </p>
-
-            <form onSubmit={handleMoveTaskSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
-                  TARGET PHASE (MONTH)
-                </label>
-                <select
-                  value={targetPhaseId}
-                  onChange={(e) => setTargetPhaseId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-white/5 bg-black/45 text-xs text-white font-mono focus:outline-none focus:border-cyber-cyan"
-                >
-                  {phases.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.name.toUpperCase()} ({p.monthName} '{String(p.year).slice(-2)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1.5">
-                  TARGET WEEK
-                </label>
-                <select
-                  value={targetWeekNum}
-                  onChange={(e) => setTargetWeekNum(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-white/5 bg-black/45 text-xs text-white font-mono focus:outline-none focus:border-cyber-cyan"
-                >
-                  <option value={1}>Week 1</option>
-                  <option value={2}>Week 2</option>
-                  <option value={3}>Week 3</option>
-                  <option value={4}>Week 4</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMoveModal(false);
-                    setActiveTask(null);
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white border border-white/5 hover:bg-white/5 cursor-pointer font-mono"
-                >
-                  CANCEL
-                </button>
-                <CyberButton
-                  type="submit"
-                  variant="cyan"
-                  className="text-xs py-2 px-4"
-                >
-                  CONFIRM MIGRATE
-                </CyberButton>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

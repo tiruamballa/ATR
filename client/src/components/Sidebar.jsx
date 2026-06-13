@@ -24,14 +24,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/calendar', label: 'Calendar',     icon: Calendar },
-    { to: '/tasks', label: 'Tasks',       icon: ListTodo },
-    { to: '/attendance', label: 'Attendance',   icon: CalendarDays },
     { to: '/dsa', label: 'DSA',      icon: Code2 },
-    { to: '/english', label: 'English',  icon: MessageSquareText },
     { to: '/aptitude', label: 'Aptitude',    icon: BrainCircuit },
-    { to: '/daily', label: 'Daily Quests',    icon: ClipboardCheck },
-    { to: '/resources', label: 'Resources',       icon: Library },
-    { to: '/analytics', label: 'Analytics',        icon: BarChart3 },
+    { to: '/attendance', label: 'Attendance', icon: ClipboardCheck },
     { to: '/settings', label: 'Settings',          icon: Settings },
   ];
 
@@ -55,7 +50,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           <Link to="/dashboard" className="flex items-center space-x-3" onClick={isOpen ? toggleSidebar : undefined}>
             <ThreeDLogo size={32} />
             <span className="font-display font-bold text-sm tracking-wider text-white">
-              ATR OS
+              ATR
             </span>
           </Link>
           <button

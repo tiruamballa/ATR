@@ -6,50 +6,45 @@
 
 :root {
   /* BACKGROUNDS */
-  --bg-void:    #0B0F14;   /* page background */
-  --bg-surface: #111827;   /* sidebar, navbar */
-  --bg-card:    #151B26;   /* card surfaces */
-  --bg-glass:   rgba(17, 24, 39, 0.7);
+  --bg-void:    #0F172A;   /* page background */
+  --bg-surface: #1E293B;   /* sidebar, navbar */
+  --bg-card:    #1E293B;   /* card surfaces */
+  --bg-glass:   rgba(30, 41, 59, 0.7);
 
   /* ACCENTS */
-  --cyan:   #22D3EE;   /* primary accent */
-  --purple: #8B5CF6;   /* secondary accent */
+  --cyan:   #3B82F6;   /* primary accent - blue */
+  --purple: #8B5CF6;   /* secondary accent - purple */
   --red:    #EF4444;   /* danger */
   --yellow: #F59E0B;   /* warning / streak */
   --success: #22C55E;  /* success */
 
   /* SHADOWS */
-  --glow-cyan:   0 4px 20px -2px rgba(0, 0, 0, 0.4);
-  --glow-purple: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
-  --glow-red:    0 4px 20px -2px rgba(0, 0, 0, 0.4);
-  --glow-yellow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  --glow-cyan:   none;
+  --glow-purple: none;
+  --glow-red:    none;
+  --glow-yellow: none;
 
   /* TEXT */
-  --text-primary:   #F3F4F6;
-  --text-secondary: #9CA3AF;
-  --text-muted:     #4B5563;
-  --text-cyan:      #22D3EE;
+  --text-primary:   #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted:     #64748B;
+  --text-cyan:      #3B82F6;
 
   /* BORDERS */
-  --border-dim:    1px solid rgba(255, 255, 255, 0.07);
-  --border-cyan:   1px solid rgba(34, 211, 238, 0.25);
-  --border-purple: 1px solid rgba(139, 92, 246, 0.25);
-  --border-red:    1px solid rgba(239, 68, 68, 0.4);
+  --border-dim:    1px solid rgba(255, 255, 255, 0.08);
+  --border-cyan:   1px solid rgba(59, 130, 246, 0.2);
+  --border-purple: 1px solid rgba(139, 92, 246, 0.2);
+  --border-red:    1px solid rgba(239, 68, 68, 0.2);
 
   /* TYPOGRAPHY */
   --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-body:    'Inter', sans-serif;
-  --font-mono:    'JetBrains Mono', monospace;
+  --font-mono:    'JetBrains Mono', Ready;
 }
 
 @layer base {
   body {
     background-color: var(--bg-void);
-    background-image:
-      radial-gradient(ellipse at 15% 50%, rgba(123,97,255,0.06) 0%, transparent 55%),
-      radial-gradient(ellipse at 85% 15%, rgba(0,245,212,0.04) 0%, transparent 50%),
-      radial-gradient(ellipse at 60% 85%, rgba(255,107,107,0.03) 0%, transparent 40%);
-    background-attachment: fixed;
     color: var(--text-primary);
     font-family: var(--font-body);
     @apply antialiased overflow-x-hidden;

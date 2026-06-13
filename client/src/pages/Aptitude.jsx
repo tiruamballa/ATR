@@ -1,294 +1,418 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
-import {
-  BrainCircuit,
-  Award,
-  CheckCircle,
-  Plus,
-  HelpCircle,
-  CheckCircle2
-} from 'lucide-react';
+import { BrainCircuit, CheckCircle2, Circle, Save, ChevronDown, ChevronUp, AlertCircle, HelpCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import CyberButton from '../components/CyberButton';
+import XPBar from '../components/XPBar';
 
 const Aptitude = () => {
-  const [topics, setTopics] = useState([]);
+  const [groupedTopics, setGroupedTopics] = useState({});
+  const [overallStats, setOverallStats] = useState({ total: 0, completed: 0, percent: 0 });
   const [loading, setLoading] = useState(true);
-  const [activeTopicId, setActiveTopicId] = useState('');
-  const [formData, setFormData] = useState({
-    attempted: 0,
-    accuracy: 0,
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState('');
 
-  const fetchAptitudeTopics = async () => {
+  // Accordion collapsed state: { partName: boolean }
+  const [expandedParts, setExpandedParts] = useState({
+    'PART 1 Quantitative Aptitude': true,
+    'PART 2 Analytical Reasoning': true,
+    'PART 3 Grammar & Reading Comprehension': false,
+    'PART 4 Vocabulary': false
+  });
+
+  // Local editing states: { topicId: { progress, notes } }
+  const [editStates, setEditStates] = useState({});
+  const [editSubStates, setEditSubStates] = useState({});
+
+  const fetchAptitudeData = async () => {
     try {
-      const data = await apiRequest('/aptitude');
+      const data = await apiRequest('/aptitude/topics');
       if (data.success) {
-        setTopics(data.topics);
-        if (data.topics.length > 0 && !activeTopicId) {
-          setActiveTopicId(data.topics[0]._id);
-          setFormData({
-            attempted: data.topics[0].attempted,
-            accuracy: data.topics[0].accuracy,
+        setGroupedTopics(data.grouped);
+        setOverallStats(data.overall);
+
+        // Populate local edit states
+        const initialStates = {};
+        const initialSubStates = {};
+        Object.keys(data.grouped).forEach(part => {
+          data.grouped[part].forEach(topic => {
+            initialStates[topic._id] = {
+              progress: topic.progress || 0,
+              notes: topic.notes || ''
+            };
+            initialSubStates[topic._id] = {};
+            (topic.subtopics || []).forEach(sub => {
+              initialSubStates[topic._id][sub._id] = {
+                questionsSolved: sub.questionsSolved || 0,
+                accuracyPercent: sub.accuracyPercent || 0,
+                revisionCount: sub.revisionCount || 0,
+                notes: sub.notes || ''
+              };
+            });
           });
-        }
+        });
+        setEditStates(initialStates);
+        setEditSubStates(initialSubStates);
       }
     } catch (err) {
-      console.error('Failed to load Aptitude topics:', err);
+      console.error('Failed to load Aptitude syllabus details:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAptitudeTopics();
+    fetchAptitudeData();
   }, []);
 
-  const handleTopicSelect = (topicId) => {
-    setActiveTopicId(topicId);
-    const selected = topics.find((t) => t._id === topicId);
-    if (selected) {
-      setFormData({
-        attempted: selected.attempted,
-        accuracy: selected.accuracy,
-      });
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
+  const togglePart = (part) => {
+    setExpandedParts(prev => ({
       ...prev,
-      [name]: Math.max(0, parseInt(value) || 0),
+      [part]: !prev[part]
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!activeTopicId) return;
+  const handleLocalChange = (topicId, field, value) => {
+    setEditStates(prev => ({
+      ...prev,
+      [topicId]: {
+        ...prev[topicId],
+        [field]: value
+      }
+    }));
+  };
 
-    setSubmitting(true);
-    setMessage('');
+  const handleSubChange = (topicId, subtopicId, field, value) => {
+    setEditSubStates(prev => ({
+      ...prev,
+      [topicId]: {
+        ...prev[topicId],
+        [subtopicId]: {
+          ...prev[topicId][subtopicId],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleSaveTopic = async (topicId) => {
+    const state = editStates[topicId];
+    if (!state) return;
 
     try {
-      const data = await apiRequest(`/aptitude/${activeTopicId}`, {
+      const data = await apiRequest(`/aptitude/topics/${topicId}`, {
         method: 'PUT',
         body: {
-          attempted: formData.attempted,
-          accuracy: Math.min(100, formData.accuracy),
-        },
+          notes: state.notes
+        }
       });
+      if (data.success) {
+        await fetchAptitudeData();
+      }
+    } catch (err) {
+      console.error('Failed to update aptitude topic notes:', err);
+    }
+  };
 
-      if (data.success && data.topic) {
-        setMessage('Aptitude practice results logged successfully!');
+  const handleToggleSubtopic = async (topicId, subtopicId, currentStatus) => {
+    const nextStatus = !currentStatus;
+    try {
+      const data = await apiRequest(`/aptitude/topics/${topicId}`, {
+        method: 'PUT',
+        body: {
+          subtopicId,
+          subCompleted: nextStatus
+        }
+      });
+      if (data.success) {
+        await fetchAptitudeData();
         
-        // Update topics local state
-        setTopics((prev) =>
-          prev.map((t) => (t._id === activeTopicId ? data.topic : t))
-        );
-
-        if (formData.accuracy >= 80) {
+        if (data.topic.isCompleted && !currentStatus) {
           confetti({
-            particleCount: 50,
-            spread: 40,
+            particleCount: 40,
+            spread: 50,
             origin: { y: 0.8 },
-            colors: ['#f59e0b', '#10b981'],
+            colors: ['#FACC15', '#22D3EE']
           });
         }
       }
     } catch (err) {
-      console.error('Failed to update Aptitude topic stats:', err);
-    } finally {
-      setSubmitting(false);
+      console.error('Failed to toggle subtopic status:', err);
+    }
+  };
+
+  const handleSaveSubtopic = async (topicId, subtopicId) => {
+    const subState = editSubStates[topicId]?.[subtopicId];
+    if (!subState) return;
+
+    try {
+      const data = await apiRequest(`/aptitude/topics/${topicId}`, {
+        method: 'PUT',
+        body: {
+          subtopicId,
+          questionsSolved: Number(subState.questionsSolved),
+          accuracyPercent: Number(subState.accuracyPercent),
+          revisionCount: Number(subState.revisionCount),
+          subNotes: subState.notes
+        }
+      });
+      if (data.success) {
+        await fetchAptitudeData();
+      }
+    } catch (err) {
+      console.error('Failed to save subtopic properties:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] font-mono text-xs text-cyber-cyan space-y-4">
-        <div className="w-48 bg-slate-950 border border-cyber-cyan/30 h-2 relative overflow-hidden">
-          <div className="absolute top-0 bottom-0 left-0 bg-cyber-cyan animate-pulse" style={{ width: '70%' }} />
-        </div>
-        <span className="animate-pulse tracking-widest uppercase">TUNING LOGIC CORES...</span>
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyber-cyan" />
       </div>
     );
   }
 
-  // Aggregate stats
-  const totalAttempted = topics.reduce((acc, t) => acc + t.attempted, 0);
-  const totalAccuracySum = topics.reduce((acc, t) => acc + t.accuracy, 0);
-  const avgAccuracy = topics.length > 0 ? Math.round(totalAccuracySum / topics.length) : 0;
+  const parts = [
+    'PART 1 Quantitative Aptitude',
+    'PART 2 Analytical Reasoning',
+    'PART 3 Grammar & Reading Comprehension',
+    'PART 4 Vocabulary'
+  ];
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
       
-      {/* Top Aggregated Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Practice log summary */}
-        <div className="cyber-card p-6 border-l-4 border-l-cyber-yellow bg-black/45 shadow-[0_0_15px_rgba(250,204,21,0.03)]">
-          <span className="block text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">
-            Total Questions Practiced
-          </span>
-          <span className="text-2xl font-display font-black text-white mt-1 block">
-            {totalAttempted} Qs
-          </span>
-        </div>
-
-        {/* Accuracy summaries */}
-        <div className="cyber-card p-6 border-l-4 border-l-cyber-cyan bg-black/45 shadow-[0_0_15px_rgba(0,245,212,0.03)]">
-          <span className="block text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">
-            Average Aptitude Accuracy
-          </span>
-          <span className="text-2xl font-display font-black text-white mt-1 block">
-            {avgAccuracy}%
-          </span>
-        </div>
-
-        {/* Practice Session logger */}
-        <div className="cyber-card p-6 border-l-4 border-l-cyber-purple bg-black/45 shadow-[0_0_15px_rgba(123,97,255,0.03)]">
-          <span className="block text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">
-            Modules Mastered (&gt;80% Accuracy)
-          </span>
-          <span className="text-2xl font-display font-black text-white mt-1 block">
-            {topics.filter(t => t.accuracy >= 80).length} / {topics.length}
-          </span>
-        </div>
-
-      </div>
-
+      {/* ── TOP HIGHLIGHT PROGRESS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Update stats form */}
-        <div className="lg:col-span-1 cyber-card p-6 border border-cyber-yellow/20 bg-black/45 flex flex-col justify-between shadow-[0_0_15px_rgba(250,204,21,0.03)]">
-          <div className="space-y-4">
-            <h3 className="font-display font-black text-white text-xs tracking-wider flex items-center gap-2 mb-2 uppercase">
-              <BrainCircuit size={16} className="text-cyber-yellow animate-pulse" />
-              Log Practice Session
-            </h3>
+        {/* Progress Card */}
+        <div className="lg:col-span-1 bg-[#151B26] border border-white/5 rounded-xl p-5 flex flex-col justify-between border-l-4 border-l-cyber-yellow">
+          <div className="space-y-1">
+            <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase">
+              Aptitude syllabus completion
+            </span>
+            <h2 className="text-3xl font-display font-black text-white leading-none">
+              {overallStats.completed} <span className="text-xs font-mono font-semibold text-slate-400">/ {overallStats.total} Solved</span>
+            </h2>
+          </div>
 
-            {message && (
-              <div className="p-2.5 rounded-lg bg-cyber-cyan/5 border border-cyber-cyan/20 text-cyber-cyan text-xs font-mono flex items-center gap-1.5 animate-pulse">
-                <CheckCircle2 size={13} /> <span>{message}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-              <div>
-                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase mb-1.5">
-                  Select Topic
-                </label>
-                <select
-                  value={activeTopicId}
-                  onChange={(e) => handleTopicSelect(e.target.value)}
-                  className="w-full glass-input text-xs font-mono"
-                >
-                  {topics.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.topicName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase mb-1.5">
-                  Questions Attempted
-                </label>
-                <input
-                  type="number"
-                  name="attempted"
-                  required
-                  value={formData.attempted}
-                  onChange={handleInputChange}
-                  className="w-full glass-input text-xs font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[9px] font-mono font-bold text-slate-500 uppercase mb-1.5">
-                  Accuracy Percentage (%)
-                </label>
-                <input
-                  type="number"
-                  name="accuracy"
-                  required
-                  max={100}
-                  value={formData.accuracy}
-                  onChange={handleInputChange}
-                  className="w-full glass-input text-xs font-mono"
-                />
-              </div>
-
-              <CyberButton
-                type="submit"
-                disabled={submitting}
-                variant="yellow"
-                className="w-full py-2.5 text-xs font-bold"
-              >
-                {submitting ? 'Updating...' : 'Update Topic Results'}
-              </CyberButton>
-            </form>
+          <div className="space-y-2 mt-6">
+            <XPBar
+              label="APTITUDE PREP TREE %"
+              current={overallStats.percent}
+              max={100}
+              color="#FACC15"
+            />
           </div>
         </div>
 
-        {/* Topics grid list */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {topics.map((topic) => {
-            const isProficient = topic.accuracy >= 80;
-            const isActive = activeTopicId === topic._id;
-            return (
-              <div
-                key={topic._id}
-                onClick={() => handleTopicSelect(topic._id)}
-                className={`cyber-card p-5 bg-black/45 flex flex-col justify-between cursor-pointer border hover:border-cyber-yellow/40 transition-all duration-200 ${
-                  isActive 
-                    ? 'border-cyber-yellow/40 shadow-[0_0_15px_rgba(250,204,21,0.08)] bg-cyber-yellow/[0.01]' 
-                    : 'border-white/5'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="font-display font-bold text-xs text-white tracking-wide uppercase truncate mr-2">
-                    {topic.topicName}
-                  </h4>
-                  <span className={`text-[8px] font-mono font-bold px-2 py-0.5 rounded border flex-shrink-0 ${
-                    isProficient
-                      ? 'bg-cyber-cyan/5 text-cyber-cyan border-cyber-cyan/20'
-                      : 'bg-white/5 text-slate-500 border-white/5'
-                  }`}>
-                    {isProficient ? 'READY ⭐️' : 'PRACTICE'}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-4 text-xs font-mono">
-                  <div>
-                    <span className="block text-[8px] text-slate-500 font-bold uppercase">Attempted</span>
-                    <span className="font-bold text-white mt-0.5 block">{topic.attempted} Qs</span>
-                  </div>
-                  <div>
-                    <span className="block text-[8px] text-slate-500 font-bold uppercase">Accuracy</span>
-                    <span className={`font-bold mt-0.5 block ${isProficient ? 'text-cyber-cyan' : 'text-slate-300'}`}>
-                      {topic.accuracy}%
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-[8px] font-mono text-slate-600 mt-4 border-t border-white/5 pt-2 flex items-center justify-between">
-                  <span>LAST PRACTICE:</span>
-                  <span className="uppercase">
-                    {topic.lastPracticed
-                      ? new Date(topic.lastPracticed).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : 'NEVER'}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+        {/* Text descriptions */}
+        <div className="lg:col-span-2 bg-[#151B26] border border-white/5 rounded-xl p-5 relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-yellow/5 rounded-full blur-[80px]" />
+          <div className="relative z-10 space-y-3">
+            <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
+              <BrainCircuit className="text-cyber-yellow" size={16} />
+              Logical & Quantitative Core Syllabus
+            </h3>
+            <p className="text-[11px] text-slate-400 font-body leading-relaxed">
+              This module tracks topics from standard quantitative, analytical reasoning, corporate grammar, and vocabulary lists. Log study progress percentages, toggle completions, and store key notes for preparation reviews.
+            </p>
+          </div>
         </div>
 
       </div>
+
+      {/* ── ACCORDION PART PANELS */}
+      <div className="space-y-4">
+        {parts.map((partName) => {
+          const list = groupedTopics[partName] || [];
+          const isExpanded = !!expandedParts[partName];
+          
+          const partTotal = list.length;
+          const partCompleted = list.filter(t => t.isCompleted).length;
+          const partPercent = partTotal > 0 ? Math.round((partCompleted / partTotal) * 100) : 0;
+
+          return (
+            <div key={partName} className="bg-[#151B26] border border-white/5 rounded-xl overflow-hidden shadow-xl">
+              
+              {/* Accordion header toggle */}
+              <div
+                onClick={() => togglePart(partName)}
+                className="px-6 py-4.5 bg-white/[0.01] hover:bg-white/[0.02] border-b border-white/5 flex items-center justify-between cursor-pointer select-none transition-all"
+              >
+                <div className="flex items-center space-x-3.5 min-w-0">
+                  <span className="text-cyber-yellow"><BrainCircuit size={16} /></span>
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider truncate font-display">
+                      {partName}
+                    </h3>
+                    <span className="text-[9px] text-slate-500 font-mono block mt-0.5 uppercase">
+                      {partCompleted} / {partTotal} Topics Completed • {partPercent}% Done
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-4">
+                  <div className="w-24 bg-slate-900 h-1.5 rounded-full overflow-hidden border border-white/5 hidden sm:block">
+                    <div className="bg-cyber-yellow h-full" style={{ width: `${partPercent}%` }} />
+                  </div>
+                  <span className="text-slate-500">
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </span>
+                </div>
+              </div>
+
+              {/* Accordion body list */}
+              {isExpanded && (
+                <div className="divide-y divide-white/5">
+                  {list.length > 0 ? (
+                    list.map((topic) => {
+                      const values = editStates[topic._id] || { progress: 0, notes: '' };
+                      return (
+                        <div
+                          key={topic._id}
+                          className={`p-5 flex flex-col space-y-4 transition-all duration-150 border-b border-white/5 ${
+                            topic.isCompleted ? 'bg-cyber-yellow/[0.01]' : 'hover:bg-white/[0.01]'
+                          }`}
+                        >
+                          {/* Parent Row: Topic Name & Notes */}
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            {/* Left: Complete Checkbox and Name */}
+                            <div className="flex items-start space-x-3 flex-1 min-w-0">
+                              <div className="min-w-0">
+                                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                                  <h4 className={`text-xs font-bold font-mono tracking-wide ${topic.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                                    {topic.topicName}
+                                  </h4>
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold border flex-shrink-0 ${
+                                    topic.isCompleted
+                                      ? 'bg-green-500/10 text-green-400 border-green-500/15'
+                                      : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/15'
+                                  }`}>
+                                    {topic.isCompleted ? 'COMPLETED' : 'IN PROGRESS'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-2.5 mt-1.5 font-mono text-[9px] text-slate-500">
+                                  <span>Dynamic Progress: <span className="text-white font-bold">{topic.progress}%</span></span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Middle: Notes and Actions */}
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <input
+                                type="text"
+                                placeholder="Insert notes, formulas, or review pointers..."
+                                value={values.notes}
+                                onChange={(e) => handleLocalChange(topic._id, 'notes', e.target.value)}
+                                className="flex-1 px-3 py-1.5 rounded-lg border border-white/5 bg-black/25 text-[10px] text-slate-300 font-mono focus:outline-none focus:border-cyber-yellow"
+                              />
+                              <button
+                                onClick={() => handleSaveTopic(topic._id)}
+                                title="Save Notes"
+                                className="p-2 bg-white/5 hover:bg-cyber-yellow/10 hover:text-cyber-yellow rounded-lg border border-white/5 hover:border-cyber-yellow/20 transition-all cursor-pointer flex-shrink-0"
+                              >
+                                <Save size={12} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Nested Subtopics Grid */}
+                          {topic.subtopics && topic.subtopics.length > 0 && (
+                            <div className="pl-6 border-l border-white/5 space-y-2.5">
+                              <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                                Subtopic Curriculum Checklist
+                              </span>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {topic.subtopics.map((sub) => {
+                                  const subState = editSubStates[topic._id]?.[sub._id] || { questionsSolved: 0, accuracyPercent: 0, notes: '' };
+                                  return (
+                                    <div
+                                      key={sub._id}
+                                      className={`p-3 rounded-xl border flex flex-col justify-between space-y-3 transition-all ${
+                                        sub.isCompleted
+                                          ? 'bg-cyber-yellow/5 border-cyber-yellow/15 text-slate-500'
+                                          : 'bg-black/20 border-white/5 text-white'
+                                      }`}
+                                    >
+                                      {/* Subtopic Header: checkbox & name */}
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-center space-x-2.5 min-w-0">
+                                          <button
+                                            onClick={() => handleToggleSubtopic(topic._id, sub._id, sub.isCompleted)}
+                                            className="text-slate-500 hover:text-cyber-yellow cursor-pointer flex-shrink-0"
+                                          >
+                                            {sub.isCompleted ? (
+                                              <CheckCircle2 size={15} className="text-cyber-yellow fill-cyber-yellow/10" />
+                                            ) : (
+                                              <Circle size={15} className="hover:text-cyber-yellow" />
+                                            )}
+                                          </button>
+                                          <span className={`text-[10px] font-mono font-bold leading-relaxed truncate ${sub.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                                            {sub.name}
+                                          </span>
+                                        </div>
+                                        <span className={`px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase rounded border ${
+                                          sub.isCompleted
+                                            ? 'bg-green-500/10 text-green-400 border-green-500/10'
+                                            : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/10'
+                                        }`}>
+                                          {sub.isCompleted ? 'Done' : 'Study'}
+                                        </span>
+                                      </div>
+
+                                      {/* Subtopic Metrics Controls */}
+                                      <div className="grid grid-cols-3 gap-2 text-[9px] font-mono text-slate-500 pt-2 border-t border-white/5">
+                                        <div>
+                                          <span className="block text-[8px] text-slate-600 uppercase">Questions</span>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            value={subState.questionsSolved}
+                                            onChange={(e) => handleSubChange(topic._id, sub._id, 'questionsSolved', parseInt(e.target.value) || 0)}
+                                            className="w-full bg-black/40 text-white border border-white/5 rounded px-1.5 py-0.5 mt-0.5 text-center focus:outline-none focus:border-cyber-yellow font-bold text-[9px]"
+                                          />
+                                        </div>
+                                        <div>
+                                          <span className="block text-[8px] text-slate-600 uppercase">Accuracy %</span>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={subState.accuracyPercent}
+                                            onChange={(e) => handleSubChange(topic._id, sub._id, 'accuracyPercent', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                            className="w-full bg-black/40 text-white border border-white/5 rounded px-1.5 py-0.5 mt-0.5 text-center focus:outline-none focus:border-cyber-yellow font-bold text-[9px]"
+                                          />
+                                        </div>
+                                        <div className="flex flex-col justify-end">
+                                          <button
+                                            onClick={() => handleSaveSubtopic(topic._id, sub._id)}
+                                            className="w-full py-0.5 bg-white/5 hover:bg-cyber-yellow/10 hover:text-cyber-yellow border border-white/10 hover:border-cyber-yellow/25 rounded cursor-pointer transition-all flex items-center justify-center font-bold text-[8px] h-[20px]"
+                                          >
+                                            <Save size={10} className="mr-0.5" /> Save
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-12 text-slate-600 italic text-xs font-mono flex items-center justify-center gap-1.5">
+                      <HelpCircle size={15} />
+                      <span>No topics mapped under this part.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          );
+        })}
+      </div>
+
     </div>
   );
 };

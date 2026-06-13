@@ -1,377 +1,363 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
-import {
-  Code2,
-  RefreshCw,
-  Plus,
-  Minus,
-  CheckCircle,
-  HelpCircle
-} from 'lucide-react';
+import { Code2, CheckCircle2, Circle, Save, ChevronDown, ChevronUp, Star, Plus, Minus } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import TiltCard from '../components/TiltCard';
-import CyberButton from '../components/CyberButton';
 import XPBar from '../components/XPBar';
 
 const DSA = () => {
   const [topics, setTopics] = useState([]);
-  const [leetcodeUsername, setLeetcodeUsername] = useState('');
-  const [syncing, setSyncing] = useState(false);
-  const [savingUsername, setSavingUsername] = useState(false);
+  const [overallStats, setOverallStats] = useState({ total: 0, completed: 0, percent: 0 });
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [errMessage, setErrMessage] = useState('');
 
-  const fetchDSATracker = async () => {
+  // Accordion collapsed state: { topicId: boolean }
+  const [expandedTopics, setExpandedTopics] = useState({});
+
+  // Local editing states: { topicId: { subtopicId: { questionsSolved, revisionCount, notes } } }
+  const [editSubStates, setEditSubStates] = useState({});
+
+  const fetchDSATopics = async () => {
     try {
-      const data = await apiRequest('/dsa');
+      const data = await apiRequest('/dsa/topics');
       if (data.success) {
         setTopics(data.topics);
-      }
+        setOverallStats({
+          total: data.overall.total,
+          completed: data.overall.completed,
+          percent: data.overall.percent
+        });
 
-      // Fetch user settings to show current username
-      const userRes = await apiRequest('/auth/me');
-      if (userRes.success && userRes.user) {
-        setLeetcodeUsername(userRes.user.leetcodeUsername || '');
+        // Initialize local edit states
+        const initialSubStates = {};
+        data.topics.forEach(topic => {
+          initialSubStates[topic._id] = {};
+          (topic.subtopics || []).forEach(sub => {
+            initialSubStates[topic._id][sub._id] = {
+              questionsSolved: sub.questionsSolved || 0,
+              revisionCount: sub.revisionCount || 0,
+              notes: sub.notes || ''
+            };
+          });
+        });
+        setEditSubStates(initialSubStates);
       }
     } catch (err) {
-      console.error('Failed to load DSA data:', err);
+      console.error('Failed to load DSA topics:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDSATracker();
+    fetchDSATopics();
   }, []);
 
-  const handleUpdateQuestions = async (topicId, solvedQuestions, targetQuestions) => {
-    try {
-      const data = await apiRequest(`/dsa/${topicId}`, {
-        method: 'PUT',
-        body: { solvedQuestions, targetQuestions },
-      });
-      if (data.success && data.topic) {
-        setTopics((prev) =>
-          prev.map((t) => (t._id === topicId ? data.topic : t))
-        );
+  const toggleTopicExpand = (topicId) => {
+    setExpandedTopics(prev => ({
+      ...prev,
+      [topicId]: !prev[topicId]
+    }));
+  };
 
-        // Celebrate if a topic becomes 100% completed
-        if (solvedQuestions >= targetQuestions && targetQuestions > 0) {
+  const handleSubChange = (topicId, subtopicId, field, value) => {
+    setEditSubStates(prev => ({
+      ...prev,
+      [topicId]: {
+        ...prev[topicId],
+        [subtopicId]: {
+          ...prev[topicId][subtopicId],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleToggleSubtopic = async (topicId, subtopicId, currentStatus) => {
+    const nextStatus = !currentStatus;
+    try {
+      const data = await apiRequest(`/dsa/topics/${topicId}`, {
+        method: 'PUT',
+        body: {
+          subtopicId,
+          subCompleted: nextStatus
+        }
+      });
+      if (data.success) {
+        await fetchDSATopics();
+        
+        if (data.topic.isCompleted && !currentStatus) {
           confetti({
-            particleCount: 100,
-            spread: 70,
+            particleCount: 40,
+            spread: 50,
             origin: { y: 0.8 },
-            colors: ['#22D3EE', '#8B5CF6', '#F59E0B'],
+            colors: ['#3B82F6', '#8B5CF6']
           });
         }
       }
     } catch (err) {
-      console.error('Failed to update DSA topic progress:', err);
+      console.error('Failed to toggle DSA subtopic status:', err);
     }
   };
 
-  const handleSaveUsername = async (e) => {
-    e.preventDefault();
-    setSavingUsername(true);
-    setMessage('');
-    setErrMessage('');
+  const handleSaveSubtopic = async (topicId, subtopicId) => {
+    const subState = editSubStates[topicId]?.[subtopicId];
+    if (!subState) return;
 
     try {
-      const data = await apiRequest('/profile/leetcode-username', {
-        method: 'POST',
-        body: { username: leetcodeUsername },
+      const data = await apiRequest(`/dsa/topics/${topicId}`, {
+        method: 'PUT',
+        body: {
+          subtopicId,
+          questionsSolved: Number(subState.questionsSolved),
+          revisionCount: Number(subState.revisionCount),
+          subNotes: subState.notes
+        }
       });
       if (data.success) {
-        setMessage('LeetCode username configured successfully!');
+        await fetchDSATopics();
       }
     } catch (err) {
-      setErrMessage(err.message || 'Failed to update LeetCode username');
-    } finally {
-      setSavingUsername(false);
+      console.error('Failed to save subtopic properties:', err);
     }
   };
 
-  const handleLeetcodeSync = async () => {
-    if (!leetcodeUsername) {
-      return setErrMessage('Configure a LeetCode username in the field below first.');
-    }
-    setSyncing(true);
-    setMessage('');
-    setErrMessage('');
+  const handleStepQuestionsSolved = async (topicId, subtopicId, currentVal, increment) => {
+    const newVal = Math.max(0, currentVal + increment);
+    handleSubChange(topicId, subtopicId, 'questionsSolved', newVal);
 
     try {
-      const data = await apiRequest('/dsa/sync', { method: 'POST' });
+      const data = await apiRequest(`/dsa/topics/${topicId}`, {
+        method: 'PUT',
+        body: {
+          subtopicId,
+          questionsSolved: newVal
+        }
+      });
       if (data.success) {
-        setTopics(data.topics);
-        setMessage(data.message);
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#22D3EE', '#8B5CF6', '#F59E0B'],
-        });
+        await fetchDSATopics();
       }
     } catch (err) {
-      setErrMessage(err.message || 'LeetCode API sync failed. Verify your username.');
-    } finally {
-      setSyncing(false);
+      console.error('Failed to step questions solved:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyber-cyan"></div>
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyber-cyan" />
       </div>
     );
   }
 
-  // Aggregate stats
-  const totalSolved = topics.reduce((acc, t) => acc + t.solvedQuestions, 0);
-  const totalTarget = topics.reduce((acc, t) => acc + t.targetQuestions, 0);
-  const overallPercent = totalTarget > 0 ? Math.round((totalSolved / totalTarget) * 100) : 0;
-
-  // Determine category color based on index
-  const getTopicColor = (index) => {
-    if (index < 5) return '#22D3EE'; // Basic -> Cyan
-    if (index < 10) return '#8B5CF6'; // Intermediate -> Purple
-    return '#EC4899'; // Advanced -> Pink
-  };
+  // Calculate sum of all manually entered solved questions
+  let totalManualSolved = 0;
+  topics.forEach(t => {
+    (t.subtopics || []).forEach(s => {
+      totalManualSolved += (s.questionsSolved || 0);
+    });
+  });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
       
-      {/* ── TOP STATS AND SYNC CONTROLS */}
+      {/* ── TOP HIGHLIGHT PROGRESS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Overall progress panel */}
-        <div className="lg:col-span-1 cyber-card flex flex-col justify-between border-l-4 border-l-cyber-cyan">
-          <div className="space-y-2">
+        {/* Progress Card */}
+        <div className="lg:col-span-1 bg-surface border border-white/5 rounded-xl p-5 flex flex-col justify-between border-l-4 border-l-cyber-cyan">
+          <div className="space-y-1">
             <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase">
-              Total Skill Progress (Java)
+              DSA Syllabus completion
             </span>
             <h2 className="text-3xl font-display font-black text-white leading-none">
-              {totalSolved} <span className="text-xs font-mono font-semibold text-slate-400">/ {totalTarget} Solved</span>
+              {overallStats.completed} <span className="text-xs font-mono font-semibold text-slate-400">/ {overallStats.total} Subtopics Completed</span>
             </h2>
           </div>
 
           <div className="space-y-2 mt-6">
-            <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-              <span>Overall Skill Tree Sync</span>
-              <span className="text-cyber-cyan font-bold">{overallPercent}%</span>
-            </div>
-            <div className="w-full bg-slate-900 h-2 rounded-md overflow-hidden border border-white/5">
-              <div
-                className="bg-gradient-to-r from-cyber-cyan to-cyber-purple h-full rounded-md transition-all duration-300"
-                style={{ width: `${overallPercent}%` }}
-              />
-            </div>
+            <XPBar
+              label="DSA TRACKER PROGRESS"
+              current={overallStats.percent}
+              max={100}
+              color="#3B82F6"
+            />
           </div>
         </div>
 
-        {/* LeetCode Sync panel */}
-        <div className="lg:col-span-2 cyber-card relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-cyan/5 rounded-full blur-[80px]" />
-          
-          <div className="space-y-4 relative z-10">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
-                <Code2 className="text-cyber-cyan" size={18} />
-                SKILL TREE SYNC GATEWAY
-              </h3>
-              <CyberButton
-                onClick={handleLeetcodeSync}
-                variant="cyan"
-                disabled={syncing}
-                className="py-2.5 px-4 text-xs font-mono flex items-center gap-1.5"
-              >
-                <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
-                {syncing ? 'SYNCING...' : 'SYNC LEETCODE'}
-              </CyberButton>
+        {/* Stats Gauge Cards */}
+        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+          <div className="bg-surface border border-white/5 rounded-xl p-5 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block">
+              Total Solved Questions
+            </span>
+            <div className="text-4xl font-mono font-black text-cyber-cyan mt-4">
+              {totalManualSolved}
             </div>
+            <span className="text-[9px] text-slate-500 font-mono block uppercase mt-2">
+              Sum of manual solves across subtopics
+            </span>
+          </div>
 
-            {/* Notification triggers */}
-            {message && (
-              <div className="p-2.5 rounded-lg bg-cyber-cyan/5 border border-cyber-cyan/20 text-cyber-cyan text-xs font-mono flex items-center gap-1.5">
-                <CheckCircle size={14} /> <span>{message}</span>
-              </div>
-            )}
-            {errMessage && (
-              <div className="p-2.5 rounded-lg bg-cyber-red/5 border border-cyber-red/20 text-cyber-red text-xs font-mono flex items-center gap-1.5">
-                <HelpCircle size={14} /> <span>{errMessage}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveUsername} className="flex flex-col sm:flex-row gap-3 pt-2">
-              <input
-                type="text"
-                value={leetcodeUsername}
-                onChange={(e) => setLeetcodeUsername(e.target.value)}
-                placeholder="Enter LeetCode username..."
-                className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 bg-black/45 text-white font-mono text-xs focus:outline-none focus:border-cyber-cyan focus:shadow-[0_0_12px_rgba(0,245,212,0.15)] transition-all duration-300"
-              />
-              <CyberButton
-                type="submit"
-                variant="cyan"
-                disabled={savingUsername}
-                className="text-xs py-2.5"
-              >
-                {savingUsername ? 'SAVING...' : 'SAVE SETTINGS'}
-              </CyberButton>
-            </form>
+          <div className="bg-surface border border-white/5 rounded-xl p-5 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block">
+              Total DSA Topics
+            </span>
+            <div className="text-4xl font-mono font-black text-white mt-4">
+              {topics.length}
+            </div>
+            <span className="text-[9px] text-slate-500 font-mono block uppercase mt-2">
+              Standard Striver A2Z categories
+            </span>
           </div>
         </div>
 
       </div>
 
-      {/* ── 14 TOPICS SKILL TREE GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {topics.map((topic, index) => {
-          const isLocked = topic.targetQuestions === 0;
-          const isDone = topic.solvedQuestions >= topic.targetQuestions && !isLocked;
-          const percent = !isLocked ? Math.round((topic.solvedQuestions / topic.targetQuestions) * 100) : 0;
+      {/* ── SYLLABUS LIST (ACCORDION STYLE LAYOUT) */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-white/5">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">
+            Striver A2Z DSA Curriculum
+          </h3>
+          <span className="text-[10px] font-mono text-slate-500 uppercase">
+            Click topic headers to expand subtopics
+          </span>
+        </div>
+
+        {topics.map((topic) => {
+          const isExpanded = !!expandedTopics[topic._id];
           
-          const topicColor = getTopicColor(index);
-          const levelVal = Math.min(7, Math.floor(topic.solvedQuestions / 5));
-          const ratingStars = '★'.repeat(levelVal).padEnd(7, '☆');
-
-          // Locked node styling
-          if (isLocked) {
-            return (
-              <div
-                key={topic._id}
-                className="cyber-card p-5 flex flex-col justify-between h-48 opacity-35 filter grayscale border border-cyber-red/20 cursor-not-allowed select-none bg-black/40"
-              >
-                <div className="text-center py-2">
-                  <div className="text-2xl mb-1.5">🔒</div>
-                  <h4 className="font-display font-bold text-xs tracking-wider text-slate-500 uppercase">{topic.topicName}</h4>
-                  <div className="font-mono text-[9px] text-cyber-red font-semibold tracking-widest mt-1">LOCKED</div>
-                </div>
-
-                {/* Target direct config input */}
-                <div className="flex items-center justify-center space-x-2 border-t border-white/5 pt-3 mt-4">
-                  <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">SET TARGET TO UNLOCK</span>
-                  <input
-                    type="number"
-                    value={topic.targetQuestions}
-                    onChange={(e) =>
-                      handleUpdateQuestions(
-                        topic._id,
-                        topic.solvedQuestions,
-                        Math.max(0, parseInt(e.target.value) || 0)
-                      )
-                    }
-                    className="w-12 py-1 px-1 text-center text-xs font-mono font-bold bg-slate-900 border border-white/10 rounded focus:outline-none focus:border-cyber-cyan text-white cursor-text"
-                  />
-                </div>
-              </div>
-            );
-          }
-
-          // Unlocked active node styling
           return (
-            <TiltCard key={topic._id}>
+            <div
+              key={topic._id}
+              className="bg-surface border border-white/5 rounded-xl overflow-hidden transition-all duration-200"
+            >
+              {/* Accordion Header */}
               <div
-                className={`cyber-card p-5 flex flex-col justify-between h-48 transition-all ${
-                  isDone ? 'border-cyber-cyan/35 bg-cyber-cyan/5' : ''
-                }`}
-                style={isDone ? { boxShadow: `0 0 15px rgba(0, 245, 212, 0.05)` } : {}}
+                onClick={() => toggleTopicExpand(topic._id)}
+                className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-display font-extrabold text-sm text-white truncate max-w-[170px] tracking-wide uppercase">
+                <div className="flex items-center space-x-3.5 min-w-0">
+                  {topic.isCompleted ? (
+                    <CheckCircle2 size={18} className="text-green-500 flex-shrink-0" />
+                  ) : (
+                    <Code2 size={18} className="text-cyber-cyan flex-shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <span className="text-xs font-black font-display text-white uppercase tracking-wider block">
                       {topic.topicName}
-                    </h4>
-                    <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border ${
-                      isDone
-                        ? 'bg-cyber-cyan/10 text-cyber-cyan border-cyber-cyan/20'
-                        : 'bg-white/5 text-slate-400 border-white/5'
-                    }`}>
-                      {isDone ? 'MASTERED 🏆' : `${percent}% Done`}
                     </span>
-                  </div>
-
-                  {/* Level rating stars */}
-                  <div className="flex space-x-0.5 mb-3 font-mono">
-                    {ratingStars.split('').map((char, starIdx) => (
-                      <span
-                        key={starIdx}
-                        style={{ color: char === '★' ? topicColor : '#475569' }}
-                        className="text-xs"
-                      >
-                        {char}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Node XP bar */}
-                  <div className="w-full bg-slate-900 border border-white/5 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(100, percent)}%`,
-                        backgroundColor: isDone ? '#22D3EE' : topicColor,
-                        boxShadow: `0 0 8px ${isDone ? '#22D3EE' : topicColor}`
-                      }}
-                    />
+                    <span className="text-[9px] font-mono text-slate-500 uppercase block mt-0.5">
+                      Progress: {topic.progress}% ({topic.subtopics.filter(s => s.isCompleted).length} / {topic.subtopics.length} Done)
+                    </span>
                   </div>
                 </div>
 
-                {/* Question increment buttons */}
-                <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-4 gap-2">
-                  <div className="flex items-center space-x-1.5 font-mono">
-                    <button
-                      onClick={() =>
-                        handleUpdateQuestions(
-                          topic._id,
-                          Math.max(0, topic.solvedQuestions - 1),
-                          topic.targetQuestions
-                        )
-                      }
-                      className="p-1 rounded bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer border border-white/10"
-                    >
-                      <Minus size={11} />
-                    </button>
-                    <span className="text-xs font-bold text-white w-7 text-center">
-                      {topic.solvedQuestions}
-                    </span>
-                    <button
-                      onClick={() =>
-                        handleUpdateQuestions(
-                          topic._id,
-                          topic.solvedQuestions + 1,
-                          topic.targetQuestions
-                        )
-                      }
-                      className="p-1 rounded bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer border border-white/10"
-                    >
-                      <Plus size={11} />
-                    </button>
-                    <span className="text-[9px] text-slate-500 uppercase font-semibold">Solved</span>
-                  </div>
-
-                  <div className="flex items-center space-x-1.5 font-mono">
-                    <span className="text-[9px] text-slate-500 uppercase font-semibold">Target</span>
-                    <input
-                      type="number"
-                      value={topic.targetQuestions}
-                      onChange={(e) =>
-                        handleUpdateQuestions(
-                          topic._id,
-                          topic.solvedQuestions,
-                          Math.max(0, parseInt(e.target.value) || 0)
-                        )
-                      }
-                      className="w-11 py-0.5 text-center text-xs font-bold bg-[#0A0F1D] text-white border border-white/5 rounded focus:outline-none focus:border-cyber-cyan"
-                    />
-                  </div>
+                <div className="flex items-center space-x-4">
+                  <span className="text-[10px] font-mono font-bold bg-[#0F172A] px-2.5 py-1 rounded border border-white/5 text-slate-400 uppercase">
+                    Solved: {topic.subtopics.reduce((acc, sub) => acc + (sub.questionsSolved || 0), 0)} Qs
+                  </span>
+                  {isExpanded ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
                 </div>
               </div>
-            </TiltCard>
+
+              {/* Accordion Content Panel */}
+              {isExpanded && (
+                <div className="border-t border-white/5 bg-black/10 divide-y divide-white/5 p-4 space-y-4">
+                  {topic.subtopics && topic.subtopics.length > 0 ? (
+                    topic.subtopics.map((sub) => {
+                      const editState = editSubStates[topic._id]?.[sub._id] || { questionsSolved: 0, revisionCount: 0, notes: '' };
+                      
+                      return (
+                        <div
+                          key={sub._id}
+                          className="py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-4 first:pt-0 last:pb-0"
+                        >
+                          {/* Checkbox & Subtopic Name */}
+                          <div className="flex items-center space-x-3 min-w-0 lg:max-w-xs">
+                            <button
+                              onClick={() => handleToggleSubtopic(topic._id, sub._id, sub.isCompleted)}
+                              className="text-slate-500 hover:text-cyber-cyan cursor-pointer flex-shrink-0"
+                            >
+                              {sub.isCompleted ? (
+                                <CheckCircle2 size={17} className="text-green-500 fill-green-500/10" />
+                              ) : (
+                                <Circle size={17} className="hover:text-cyber-cyan" />
+                              )}
+                            </button>
+                            <span className={`text-xs font-bold font-mono tracking-wide truncate ${sub.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                              {sub.name}
+                            </span>
+                          </div>
+
+                          {/* Controls Panel */}
+                          <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
+                            
+                            {/* Questions Solved Counter with + and - */}
+                            <div className="flex items-center space-x-2 bg-slate-950 border border-white/5 px-2.5 py-1 rounded-lg">
+                              <span className="text-[10px] text-slate-500 uppercase font-bold">Solved:</span>
+                              <button
+                                onClick={() => handleStepQuestionsSolved(topic._id, sub._id, sub.questionsSolved, -1)}
+                                className="p-0.5 hover:text-cyber-cyan hover:bg-white/5 rounded cursor-pointer"
+                              >
+                                <Minus size={11} />
+                              </button>
+                              <span className="text-white font-bold font-mono w-6 text-center text-xs">
+                                {editState.questionsSolved}
+                              </span>
+                              <button
+                                onClick={() => handleStepQuestionsSolved(topic._id, sub._id, sub.questionsSolved, 1)}
+                                className="p-0.5 hover:text-cyber-cyan hover:bg-white/5 rounded cursor-pointer"
+                              >
+                                <Plus size={11} />
+                              </button>
+                            </div>
+
+                            {/* Revisions Tracker */}
+                            <div className="flex items-center space-x-2 bg-slate-950 border border-white/5 px-2.5 py-1 rounded-lg">
+                              <span className="text-[10px] text-slate-500 uppercase font-bold">Revs:</span>
+                              <span className="text-white font-bold font-mono w-4 text-center text-xs">{editState.revisionCount}</span>
+                              <button
+                                onClick={() => handleSubChange(topic._id, sub._id, 'revisionCount', Number(editState.revisionCount) + 1)}
+                                className="p-0.5 hover:text-cyber-cyan hover:bg-white/5 rounded cursor-pointer"
+                              >
+                                <Plus size={11} />
+                              </button>
+                            </div>
+
+                            {/* Brief Notes */}
+                            <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                              <input
+                                type="text"
+                                placeholder="Optimization notes (e.g. O(N) space, two-pointers...)"
+                                value={editState.notes}
+                                onChange={(e) => handleSubChange(topic._id, sub._id, 'notes', e.target.value)}
+                                className="flex-1 min-w-[150px] px-2.5 py-1 rounded-lg border border-white/5 bg-slate-950 text-[10px] text-slate-300 font-mono focus:outline-none focus:border-cyber-cyan"
+                              />
+                              <button
+                                onClick={() => handleSaveSubtopic(topic._id, sub._id)}
+                                className="p-1.5 bg-white/5 hover:bg-cyber-cyan/10 hover:text-cyber-cyan rounded-lg border border-white/5 hover:border-cyber-cyan/20 cursor-pointer transition-all"
+                                title="Save Subtopic Settings"
+                              >
+                                <Save size={12} />
+                              </button>
+                            </div>
+
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-6 text-slate-500 italic text-xs font-mono">
+                      No subtopics loaded for this category.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
+
     </div>
   );
 };
