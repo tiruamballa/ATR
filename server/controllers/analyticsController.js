@@ -2,8 +2,6 @@ const Task = require('../models/Task');
 const Phase = require('../models/Phase');
 const Analytics = require('../models/Analytics');
 const DSATopic = require('../models/DSATopic');
-const AptitudeTopic = require('../models/AptitudeTopic');
-const EnglishProgress = require('../models/EnglishProgress');
 
 // @desc    Get aggregated analytics data for dashboard charts
 // @route   GET /api/analytics

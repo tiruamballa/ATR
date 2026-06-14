@@ -1,31 +1,66 @@
 const mongoose = require('mongoose');
 
+const AptitudeSubtopicSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  isCompleted: {
+    type: Boolean,
+    default: false,
+  },
+  questionsSolved: {
+    type: Number,
+    default: 0,
+  },
+  accuracyPercent: {
+    type: Number,
+    default: 0,
+  },
+  revisionCount: {
+    type: Number,
+    default: 0,
+  },
+  notes: {
+    type: String,
+    default: '',
+  }
+});
+
 const AptitudeTopicSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
+  partName: {
+    type: String,
+    required: true, // e.g. "PART 1 Quantitative Aptitude"
+  },
   topicName: {
     type: String,
-    required: true,
+    required: true, // e.g. "Number System & Algebra"
   },
-  attempted: {
-    type: Number,
-    default: 0,
+  subtopics: [AptitudeSubtopicSchema],
+  isCompleted: {
+    type: Boolean,
+    default: false,
   },
-  accuracy: {
-    type: Number,
-    min: 0,
-    max: 100,
-    default: 0,
+  notes: {
+    type: String,
+    default: '',
   },
-  lastPracticed: {
+  isCustom: {
+    type: Boolean,
+    default: false,
+  },
+  createdAt: {
     type: Date,
     default: Date.now,
-  },
+  }
 });
 
-AptitudeTopicSchema.index({ userId: 1, topicName: 1 }, { unique: true });
+AptitudeTopicSchema.index({ userId: 1, partName: 1 });
+AptitudeTopicSchema.index({ userId: 1, topicName: 1 });
 
 module.exports = mongoose.model('AptitudeTopic', AptitudeTopicSchema);

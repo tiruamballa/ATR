@@ -1,131 +1,162 @@
 const DSATopic = require('../models/DSATopic');
-const User = require('../models/User');
+const DSAQuestion = require('../models/DSAQuestion');
 
-// @desc    Get all DSA topics progress
-// @route   GET /api/dsa
+// @desc    Get all DSA topics with aggregated solved/total metrics
+// @route   GET /api/dsa/topics
 // @access  Private
 exports.getDSATopics = async (req, res, next) => {
   try {
-    let topics = await DSATopic.find({ userId: req.user.id });
+    const topics = await DSATopic.find({ userId: req.user.id }).sort({ createdAt: 1 });
 
-    // If none exist for some reason, re-initialize them
-    if (topics.length === 0) {
-      const dsaTopics = [
-        'Arrays', 'Strings', 'Hashing', 'Linked List', 'Stack', 'Queue',
-        'Trees', 'Graphs', 'Recursion & Backtracking', 'Dynamic Programming',
-        'Greedy', 'Heap', 'Tries', 'Bit Manipulation'
-      ];
-      topics = await DSATopic.insertMany(
-        dsaTopics.map((topic) => ({ userId: req.user.id, topicName: topic }))
-      );
-    }
+    const topicsWithStats = topics.map(topic => {
+      const totalSub = topic.subtopics.length;
+      const completedSub = topic.subtopics.filter(s => s.isCompleted).length;
+      const progress = totalSub > 0 ? Math.round((completedSub / totalSub) * 100) : 0;
+      
+      return {
+        ...topic.toObject(),
+        progress
+      };
+    });
+
+    // Compute overall completion stats
+    let totalSubCount = 0;
+    let completedSubCount = 0;
+    topics.forEach(t => {
+      totalSubCount += t.subtopics.length;
+      completedSubCount += t.subtopics.filter(s => s.isCompleted).length;
+    });
+    const overallCompletionPercent = totalSubCount > 0 ? Math.round((completedSubCount / totalSubCount) * 100) : 0;
 
     res.status(200).json({
       success: true,
-      count: topics.length,
-      topics,
+      overall: {
+        total: totalSubCount,
+        completed: completedSubCount,
+        percent: overallCompletionPercent
+      },
+      topics: topicsWithStats
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Update solved or target questions for a specific topic
-// @route   PUT /api/dsa/:id
+// @desc    Update DSA topic / subtopic completion, questionsSolved, notes, revisions
+// @route   PUT /api/dsa/topics/:id
 // @access  Private
 exports.updateDSATopic = async (req, res, next) => {
   try {
-    const { solvedQuestions, targetQuestions } = req.body;
+    const { isCompleted, notes, subtopicId, subCompleted, questionsSolved, revisionCount, subNotes } = req.body;
 
-    let topic = await DSATopic.findOne({ _id: req.params.id, userId: req.user.id });
+    const topic = await DSATopic.findOne({ _id: req.params.id, userId: req.user.id });
 
     if (!topic) {
       return res.status(404).json({
         success: false,
-        message: 'DSA Topic not found or unauthorized access',
+        message: 'DSA topic not found'
       });
     }
 
-    if (solvedQuestions !== undefined) topic.solvedQuestions = Number(solvedQuestions);
-    if (targetQuestions !== undefined) topic.targetQuestions = Number(targetQuestions);
+    if (notes !== undefined) topic.notes = notes;
+
+    if (subtopicId) {
+      const sub = topic.subtopics.id(subtopicId);
+      if (sub) {
+        if (subCompleted !== undefined) {
+          sub.isCompleted = subCompleted;
+        }
+        if (questionsSolved !== undefined) {
+          sub.questionsSolved = Number(questionsSolved);
+        }
+        if (revisionCount !== undefined) {
+          sub.revisionCount = Number(revisionCount);
+        }
+        if (subNotes !== undefined) {
+          sub.notes = subNotes;
+        }
+      }
+    }
+
+    // Automatically check and set parent topic completion
+    if (topic.subtopics && topic.subtopics.length > 0) {
+      topic.isCompleted = topic.subtopics.every(s => s.isCompleted);
+    } else if (isCompleted !== undefined) {
+      topic.isCompleted = isCompleted;
+    }
 
     await topic.save();
 
+    const totalSub = topic.subtopics.length;
+    const completedSub = topic.subtopics.filter(s => s.isCompleted).length;
+    const progress = totalSub > 0 ? Math.round((completedSub / totalSub) * 100) : 0;
+
     res.status(200).json({
       success: true,
-      topic,
+      topic: {
+        ...topic.toObject(),
+        progress
+      }
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Sync solved counts from LeetCode Profile API
-// @route   POST /api/dsa/sync
+// @desc    Add a custom DSA topic
+// @route   POST /api/dsa/topics
 // @access  Private
-exports.syncLeetcode = async (req, res, next) => {
+exports.addCustomTopic = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user || !user.leetcodeUsername) {
+    const { topicName } = req.body;
+
+    if (!topicName || !topicName.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'LeetCode username is not configured in Settings.',
+        message: 'Please provide a topic name'
       });
     }
 
-    let leetcodeData;
-    try {
-      // Use native node fetch to call public leetcode stats wrapper
-      const response = await fetch(
-        `https://leetcode-stats-api.herokuapp.com/${user.leetcodeUsername}`
-      );
-      leetcodeData = await response.json();
-    } catch (fetchErr) {
-      console.error('LeetCode API fetch failed, simulating fallback sync...');
-      // Fallback in case of networking issues
-      leetcodeData = {
-        status: 'success',
-        totalSolved: 145,
-        easySolved: 70,
-        mediumSolved: 60,
-        hardSolved: 15,
-      };
-    }
+    // Check duplication
+    const existing = await DSATopic.findOne({
+      userId: req.user.id,
+      topicName: { $regex: new RegExp(`^${topicName.trim()}$`, 'i') }
+    });
 
-    if (leetcodeData && leetcodeData.status === 'success') {
-      const totalSolved = leetcodeData.totalSolved || 0;
-
-      // Distribute solved counts proportionally across the topics
-      const topics = await DSATopic.find({ userId: req.user.id });
-      
-      // Proportional allocation logic to mock category mapping
-      // Since LeetCode doesn't have an easy public category API, we share the points
-      let distributedCount = 0;
-      const countPerTopic = Math.floor(totalSolved / topics.length);
-      const remainder = totalSolved % topics.length;
-
-      for (let i = 0; i < topics.length; i++) {
-        let count = countPerTopic;
-        if (i < remainder) {
-          count += 1;
-        }
-        topics[i].solvedQuestions = count;
-        await topics[i].save();
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: `Successfully synced ${totalSolved} solved problems from LeetCode user ${user.leetcodeUsername}!`,
-        totalSolved,
-        topics,
-      });
-    } else {
+    if (existing) {
       return res.status(400).json({
         success: false,
-        message: 'LeetCode username not found on LeetCode.',
+        message: 'A topic with this name already exists'
       });
     }
+
+    const topic = await DSATopic.create({
+      userId: req.user.id,
+      topicName: topicName.trim(),
+      isCustom: true,
+      subtopics: [
+        { name: 'Basics & Introductions', isCompleted: false },
+        { name: 'Standard Implementation', isCompleted: false },
+        { name: 'Advanced Sprints', isCompleted: false }
+      ]
+    });
+
+    res.status(201).json({
+      success: true,
+      topic
+    });
   } catch (error) {
     next(error);
   }
+};
+
+// Deprecated routes placeholders for backwards compatibility
+exports.getTopicQuestions = async (req, res) => {
+  res.status(200).json({ success: true, questions: [] });
+};
+exports.addCustomQuestion = async (req, res) => {
+  res.status(200).json({ success: true, question: {} });
+};
+exports.updateQuestion = async (req, res) => {
+  res.status(200).json({ success: true, question: {} });
 };

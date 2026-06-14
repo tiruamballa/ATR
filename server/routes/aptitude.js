@@ -6,10 +6,10 @@ const router = express.Router();
 
 router.use(protect);
 
-router.route('/')
-  .get(getAptitudeTopics);
+router.get('/topics', getAptitudeTopics);
+router.get('/', getAptitudeTopics);
 
-router.route('/:id')
-  .put(updateAptitudeTopic);
+router.put('/topics/:id', updateAptitudeTopic);
+router.put('/:id', updateAptitudeTopic);
 
 module.exports = router;

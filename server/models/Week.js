@@ -1,26 +1,32 @@
 const mongoose = require('mongoose');
 
-const PhaseSchema = new mongoose.Schema({
+const WeekSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    required: true,
+  },
+  phaseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Phase',
+    required: true,
+  },
+  weekNumber: {
+    type: Number,
+    required: true,
+  },
+  globalWeekNumber: {
+    type: Number,
     required: true,
   },
   name: {
     type: String,
     required: true,
   },
-  monthIndex: {
-    type: Number,
-    required: true,
-  },
-  year: {
-    type: Number,
-    required: true,
-  },
-  monthName: {
+  status: {
     type: String,
-    required: true,
+    enum: ['Not Started', 'In Progress', 'Completed'],
+    default: 'Not Started',
   },
   plannedStartDate: {
     type: Date,
@@ -36,7 +42,6 @@ const PhaseSchema = new mongoose.Schema({
   }
 });
 
-// Index to ensure monthIndex is unique per user
-PhaseSchema.index({ userId: 1, monthIndex: 1 }, { unique: true });
+WeekSchema.index({ userId: 1, globalWeekNumber: 1 }, { unique: true });
 
-module.exports = mongoose.model('Phase', PhaseSchema);
+module.exports = mongoose.model('Week', WeekSchema);

@@ -52,6 +52,18 @@ const UserSchema = new mongoose.Schema({
     aptitude: { type: Number, default: 0 },
     mockInterviews: { type: Number, default: 0 },
   },
+  studyHoursTarget: {
+    type: Number,
+    default: 4,
+  },
+  dsaTarget: {
+    type: Number,
+    default: 4,
+  },
+  attendanceTarget: {
+    type: Number,
+    default: 75,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
