@@ -23,10 +23,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/attendance', label: 'Attendance', icon: ClipboardCheck },
     { to: '/calendar', label: 'Calendar',     icon: Calendar },
     { to: '/dsa', label: 'DSA',      icon: Code2 },
     { to: '/aptitude', label: 'Aptitude',    icon: BrainCircuit },
-    { to: '/attendance', label: 'Attendance', icon: ClipboardCheck },
     { to: '/settings', label: 'Settings',          icon: Settings },
   ];
 

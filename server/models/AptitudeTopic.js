@@ -46,6 +46,18 @@ const AptitudeTopicSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  questionsSolved: {
+    type: Number,
+    default: 0,
+  },
+  accuracyPercent: {
+    type: Number,
+    default: 0,
+  },
+  revisionCount: {
+    type: Number,
+    default: 0,
+  },
   notes: {
     type: String,
     default: '',

@@ -245,37 +245,53 @@ exports.deletePhase = async (req, res, next) => {
   }
 };
 
-// @desc    Toggle/Update a topic status inside a phase
+// @desc    Toggle/Update a topic or subtopic status inside a week
 // @route   PUT /api/phases/:id/weeks/:weekNumber/topics/:topicId
 // @access  Private
 exports.updateTopicStatus = async (req, res, next) => {
   try {
-    const { isCompleted, notes } = req.body;
-    const { id, weekNumber, topicId } = req.params;
+    const { subtopicId, isCompleted } = req.body;
+    const { topicId } = req.params;
 
-    const phase = await Phase.findOne({ _id: id, userId: req.user.id });
-    if (!phase) {
-      return res.status(404).json({ success: false, message: 'Phase not found' });
-    }
-
-    const week = phase.weeks.find(w => w.weekNumber === Number(weekNumber));
-    if (!week) {
-      return res.status(404).json({ success: false, message: 'Week not found' });
-    }
-
-    const topic = week.topics.id(topicId);
+    const topic = await Topic.findOne({ _id: topicId, userId: req.user.id });
     if (!topic) {
       return res.status(404).json({ success: false, message: 'Topic not found' });
     }
 
-    if (isCompleted !== undefined) topic.isCompleted = isCompleted;
-    if (notes !== undefined) topic.notes = notes;
+    if (subtopicId) {
+      const sub = topic.subtopics.id(subtopicId);
+      if (sub) {
+        sub.isCompleted = isCompleted;
+        sub.actualCompletionDate = isCompleted ? new Date() : null;
+      }
+    } else {
+      // Toggle overall topic status if no subtopicId is provided
+      topic.isCompleted = isCompleted;
+      topic.actualCompletionDate = isCompleted ? new Date() : null;
+    }
 
-    await phase.save();
+    // Auto-update parent topic status based on subtopics
+    if (topic.subtopics && topic.subtopics.length > 0) {
+      topic.isCompleted = topic.subtopics.every(s => s.isCompleted);
+      topic.actualCompletionDate = topic.isCompleted ? new Date() : null;
+    }
+
+    await topic.save();
+
+    // Auto-update week status
+    const allTopics = await Topic.find({ userId: req.user.id, weekId: topic.weekId });
+    const weekDoc = await Week.findById(topic.weekId);
+    if (weekDoc && allTopics.length > 0) {
+      const allDone = allTopics.every(t => t.isCompleted);
+      const someDone = allTopics.some(t => t.isCompleted || t.subtopics.some(s => s.isCompleted));
+      weekDoc.status = allDone ? 'Completed' : (someDone ? 'In Progress' : 'Not Started');
+      weekDoc.actualCompletionDate = allDone ? new Date() : null;
+      await weekDoc.save();
+    }
 
     res.status(200).json({
       success: true,
-      phase
+      topic
     });
   } catch (error) {
     next(error);

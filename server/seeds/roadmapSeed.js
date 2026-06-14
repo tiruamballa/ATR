@@ -787,42 +787,46 @@ const seedDatabase = async (options = { closeConnection: true }) => {
     }
     console.log('DSATopic subtopics tracker seeded successfully.');
 
-    // ── 7. SEED APTITUDE BOOK STRUCTURE (EXACTLY MATCHING SYLLABUS RE-WRITE)
-    console.log('Seeding Aptitude Book chapters...');
     const aptitudeData = [
       {
         part: 'PART 1 Quantitative Aptitude',
         topics: [
-          { name: 'Number System', subtopics: ['Prime numbers & factors', 'Divisibility rules', 'LCM & HCF calculations'] },
-          { name: 'Ratio & Proportion', subtopics: ['Direct/Inverse Proportion', 'Partnership allocations', 'Mixtures & alligations'] },
+          { name: 'Number System and Algebra', subtopics: ['Prime numbers & factors', 'Divisibility rules', 'LCM & HCF calculations', 'Algebraic expressions'] },
+          { name: 'Ratio and Proportion', subtopics: ['Direct/Inverse Proportion', 'Partnership allocations', 'Mixtures & alligations'] },
           { name: 'Average', subtopics: ['Simple averages', 'Weighted averages'] },
           { name: 'Percentage', subtopics: ['Percentage computations', 'Successive increments'] },
-          { name: 'Profit & Loss', subtopics: ['Cost/Sale prices', 'Markup & Discounts'] },
-          { name: 'SI & CI', subtopics: ['Simple Interest', 'Compound Interest compoundings'] },
-          { name: 'Time & Work', subtopics: ['Person-days work rate', 'Pipe & Cistern flow'] },
-          { name: 'Speed Distance', subtopics: ['Relative speeds meetings', 'Trains & Boats crossings'] },
+          { name: 'Profit and Loss', subtopics: ['Cost/Sale prices', 'Markup & Discounts'] },
+          { name: 'Simple Interest', subtopics: ['Simple Interest formulas', 'Word problems'] },
+          { name: 'Compound Interest', subtopics: ['Compound Interest formulas', 'Compounding intervals'] },
+          { name: 'Time and Work', subtopics: ['Person-days work rate', 'Pipe & Cistern flow'] },
+          { name: 'Time Speed Distance', subtopics: ['Relative speeds meetings', 'Trains & Boats crossings'] },
           { name: 'Geometry', subtopics: ['Area & Perimeter', 'Volume of 3D objects', 'Coordinate shapes'] },
-          { name: 'Higher Maths', subtopics: ['Permutations & Combinations', 'Probability basics'] },
+          { name: 'Higher Mathematics', subtopics: ['Permutations & Combinations', 'Probability basics'] },
           { name: 'Data Interpretation', subtopics: ['Bar charts', 'Pie charts calculations', 'Line graphs trends'] }
         ]
       },
       {
         part: 'PART 2 Analytical Reasoning',
         topics: [
-          { name: 'Series', subtopics: ['Arithmetic progressions series', 'Geometric series check', 'Alphabet shifts letter series'] },
-          { name: 'Analogy', subtopics: ['Word analogies', 'Number classification analogies'] },
+          { name: 'Number Series', subtopics: ['Arithmetic progressions series', 'Geometric series check'] },
+          { name: 'Letter Series', subtopics: ['Alphabet shifts letter series', 'Pattern repeats'] },
+          { name: 'Analogies', subtopics: ['Word analogies', 'Number classification analogies'] },
+          { name: 'Odd Man Out', subtopics: ['Classification anomalies', 'Odd word out'] },
           { name: 'Coding Decoding', subtopics: ['Key deciphering substitutions', 'Substitution cyphers'] },
-          { name: 'Blood Relation', subtopics: ['Family tree relations mapping', 'Coded relationships'] },
-          { name: 'Direction', subtopics: ['Compass direction displacements', 'Distance navigation'] },
-          { name: 'Venn Diagram', subtopics: ['Venn relations sets', '3-circle intersection problems'] },
-          { name: 'Clocks', subtopics: ['Angle between hands', 'Clock gains and losses'] },
+          { name: 'Directions', subtopics: ['Compass direction displacements', 'Distance navigation'] },
+          { name: 'Blood Relations', subtopics: ['Family tree relations mapping', 'Coded relationships'] },
+          { name: 'Analytical Reasoning', subtopics: ['Puzzles', 'Linear & circular arrangements'] },
           { name: 'Calendars', subtopics: ['Odd days calculations', 'Leap year check systems'] },
+          { name: 'Clocks', subtopics: ['Angle between hands', 'Clock gains and losses'] },
+          { name: 'True False Logic', subtopics: ['Truth logic validation', 'Connectives statements'] },
           { name: 'Cubes', subtopics: ['Dice face opposite checks', 'Cube cutting calculations'] },
-          { name: 'Logical Deduction', subtopics: ['Syllogisms deductions', 'Connectives and implications'] }
+          { name: 'Venn Diagrams', subtopics: ['Venn relations sets', '3-circle intersection problems'] },
+          { name: 'Non Verbal Reasoning', subtopics: ['Pattern completion figures', 'Mirror images'] },
+          { name: 'Logical Deductions', subtopics: ['Syllogisms deductions', 'Connectives and implications'] }
         ]
       },
       {
-        part: 'PART 3 Grammar & RC',
+        part: 'PART 3 Grammar & Reading Comprehension',
         topics: [
           { name: 'Parts Of Speech', subtopics: ['Noun identifiers', 'Verb actions helpers', 'Adjective descriptors'] },
           { name: 'Nouns', subtopics: ['Proper and Common Nouns', 'Plural and Singular Nouns', 'Possessive Nouns'] },
@@ -835,15 +839,14 @@ const seedDatabase = async (options = { closeConnection: true }) => {
           { name: 'Interjections', subtopics: ['Common Interjections and usage'] },
           { name: 'Tenses', subtopics: ['Simple Present/Past/Future', 'Perfect continuous formats', 'Conditional tenses'] },
           { name: 'Articles', subtopics: ['Definite vs indefinite a/an/the', 'Omission of articles'] },
-          { name: 'Active Passive', subtopics: ['Voice conversions syntax', 'By-agent omissions'] },
-          { name: 'Direct Indirect', subtopics: ['Reported speech conversions', 'Tense backshifts rules'] },
+          { name: 'Active Passive Voice', subtopics: ['Voice conversions syntax', 'By-agent omissions'] },
+          { name: 'Direct Indirect Speech', subtopics: ['Reported speech conversions', 'Tense backshifts rules'] },
           { name: 'Reading Comprehension', subtopics: ['Main idea extraction', 'Tone analysis', 'Inference questions'] }
         ]
       },
       {
         part: 'PART 4 Vocabulary',
         topics: [
-          { name: 'Vocabulary', subtopics: ['Root words lists', 'Prefixes suffix meanings'] },
           { name: 'Synonyms', subtopics: ['Contextual synonyms mapping', 'Advanced vocabulary lists'] },
           { name: 'Antonyms', subtopics: ['Contextual antonyms mapping', 'Opposite meaning words'] },
           { name: 'Sentence Completion', subtopics: ['Single blank completions', 'Double blank logic mapping'] },

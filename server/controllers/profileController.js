@@ -80,6 +80,11 @@ exports.getReadinessScores = async (req, res, next) => {
     let earlyRoadmapSub = 0;
     let earlyRoadmapCompletedSub = 0;
 
+    let totalDevSub = 0;
+    let completedDevSub = 0;
+    let totalIpSub = 0;
+    let completedIpSub = 0;
+
     allRoadmapTopics.forEach(t => {
       totalRoadmapTopics++;
       if (t.isCompleted) completedRoadmapTopics++;
@@ -88,6 +93,15 @@ exports.getReadinessScores = async (req, res, next) => {
       t.subtopics.forEach(s => {
         totalRoadmapSub++;
         if (s.isCompleted) completedRoadmapSub++;
+
+        if (t.category === 'Development') {
+          totalDevSub++;
+          if (s.isCompleted) completedDevSub++;
+        } else if (t.category === 'IP Skills') {
+          totalIpSub++;
+          if (s.isCompleted) completedIpSub++;
+        }
+
         if (isEarly) {
           earlyRoadmapSub++;
           if (s.isCompleted) earlyRoadmapCompletedSub++;
@@ -96,6 +110,8 @@ exports.getReadinessScores = async (req, res, next) => {
     });
 
     const roadmapPct = totalRoadmapSub > 0 ? (completedRoadmapSub / totalRoadmapSub) * 100 : 0;
+    const developmentPct = totalDevSub > 0 ? (completedDevSub / totalDevSub) * 100 : 0;
+    const ipSkillsPct = totalIpSub > 0 ? (completedIpSub / totalIpSub) * 100 : 0;
     const earlyRoadmapPct = earlyRoadmapSub > 0 ? (earlyRoadmapCompletedSub / earlyRoadmapSub) * 100 : 0;
 
     // B. DSA Progress from DSATopic subtopics
@@ -178,6 +194,8 @@ exports.getReadinessScores = async (req, res, next) => {
         completedApt,
         aptPct: Math.round(aptPct),
         roadmapPct: Math.round(roadmapPct),
+        developmentPct: Math.round(developmentPct),
+        ipSkillsPct: Math.round(ipSkillsPct),
         roadmapDay
       },
       targets: {

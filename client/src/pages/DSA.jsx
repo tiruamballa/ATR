@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
-import { Code2, CheckCircle2, Circle, Save, ChevronDown, ChevronUp, Star, Plus, Minus } from 'lucide-react';
+import { Code2, CheckCircle2, Circle, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import XPBar from '../components/XPBar';
 
@@ -8,12 +8,7 @@ const DSA = () => {
   const [topics, setTopics] = useState([]);
   const [overallStats, setOverallStats] = useState({ total: 0, completed: 0, percent: 0 });
   const [loading, setLoading] = useState(true);
-
-  // Accordion collapsed state: { topicId: boolean }
   const [expandedTopics, setExpandedTopics] = useState({});
-
-  // Local editing states: { topicId: { subtopicId: { questionsSolved, revisionCount, notes } } }
-  const [editSubStates, setEditSubStates] = useState({});
 
   const fetchDSATopics = async () => {
     try {
@@ -25,20 +20,6 @@ const DSA = () => {
           completed: data.overall.completed,
           percent: data.overall.percent
         });
-
-        // Initialize local edit states
-        const initialSubStates = {};
-        data.topics.forEach(topic => {
-          initialSubStates[topic._id] = {};
-          (topic.subtopics || []).forEach(sub => {
-            initialSubStates[topic._id][sub._id] = {
-              questionsSolved: sub.questionsSolved || 0,
-              revisionCount: sub.revisionCount || 0,
-              notes: sub.notes || ''
-            };
-          });
-        });
-        setEditSubStates(initialSubStates);
       }
     } catch (err) {
       console.error('Failed to load DSA topics:', err);
@@ -58,17 +39,29 @@ const DSA = () => {
     }));
   };
 
-  const handleSubChange = (topicId, subtopicId, field, value) => {
-    setEditSubStates(prev => ({
-      ...prev,
-      [topicId]: {
-        ...prev[topicId],
-        [subtopicId]: {
-          ...prev[topicId][subtopicId],
-          [field]: value
+  const handleToggleParentTopic = async (topicId, currentStatus) => {
+    const nextStatus = !currentStatus;
+    try {
+      const data = await apiRequest(`/dsa/topics/${topicId}`, {
+        method: 'PUT',
+        body: {
+          isCompleted: nextStatus
+        }
+      });
+      if (data.success) {
+        await fetchDSATopics();
+        if (nextStatus) {
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.8 },
+            colors: ['#3B82F6', '#8B5CF6']
+          });
         }
       }
-    }));
+    } catch (err) {
+      console.error('Failed to toggle parent DSA topic:', err);
+    }
   };
 
   const handleToggleSubtopic = async (topicId, subtopicId, currentStatus) => {
@@ -83,47 +76,39 @@ const DSA = () => {
       });
       if (data.success) {
         await fetchDSATopics();
-        
         if (data.topic.isCompleted && !currentStatus) {
           confetti({
-            particleCount: 40,
-            spread: 50,
+            particleCount: 30,
+            spread: 40,
             origin: { y: 0.8 },
             colors: ['#3B82F6', '#8B5CF6']
           });
         }
       }
     } catch (err) {
-      console.error('Failed to toggle DSA subtopic status:', err);
+      console.error('Failed to toggle DSA subtopic:', err);
     }
   };
 
-  const handleSaveSubtopic = async (topicId, subtopicId) => {
-    const subState = editSubStates[topicId]?.[subtopicId];
-    if (!subState) return;
-
+  const handleStepParentQuestions = async (topicId, currentVal, increment) => {
+    const newVal = Math.max(0, currentVal + increment);
     try {
       const data = await apiRequest(`/dsa/topics/${topicId}`, {
         method: 'PUT',
         body: {
-          subtopicId,
-          questionsSolved: Number(subState.questionsSolved),
-          revisionCount: Number(subState.revisionCount),
-          subNotes: subState.notes
+          questionsSolved: newVal
         }
       });
       if (data.success) {
         await fetchDSATopics();
       }
     } catch (err) {
-      console.error('Failed to save subtopic properties:', err);
+      console.error('Failed to update parent questions solved:', err);
     }
   };
 
-  const handleStepQuestionsSolved = async (topicId, subtopicId, currentVal, increment) => {
+  const handleStepSubtopicQuestions = async (topicId, subtopicId, currentVal, increment) => {
     const newVal = Math.max(0, currentVal + increment);
-    handleSubChange(topicId, subtopicId, 'questionsSolved', newVal);
-
     try {
       const data = await apiRequest(`/dsa/topics/${topicId}`, {
         method: 'PUT',
@@ -136,114 +121,99 @@ const DSA = () => {
         await fetchDSATopics();
       }
     } catch (err) {
-      console.error('Failed to step questions solved:', err);
+      console.error('Failed to update subtopic questions solved:', err);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyber-cyan" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
       </div>
     );
   }
 
-  // Calculate sum of all manually entered solved questions
-  let totalManualSolved = 0;
+  // Calculate overall stats
+  let totalSolvedCount = 0;
   topics.forEach(t => {
+    totalSolvedCount += (t.questionsSolved || 0);
     (t.subtopics || []).forEach(s => {
-      totalManualSolved += (s.questionsSolved || 0);
+      totalSolvedCount += (s.questionsSolved || 0);
     });
   });
 
+  const remainingSubtopics = overallStats.total - overallStats.completed;
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
+    <div className="space-y-6 max-w-5xl mx-auto px-1 py-3 select-none">
       
-      {/* ── TOP HIGHLIGHT PROGRESS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Progress Card */}
-        <div className="lg:col-span-1 bg-surface border border-white/5 rounded-xl p-5 flex flex-col justify-between border-l-4 border-l-cyber-cyan">
-          <div className="space-y-1">
-            <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase">
-              DSA Syllabus completion
-            </span>
-            <h2 className="text-3xl font-display font-black text-white leading-none">
-              {overallStats.completed} <span className="text-xs font-mono font-semibold text-slate-400">/ {overallStats.total} Subtopics Completed</span>
-            </h2>
-          </div>
-
-          <div className="space-y-2 mt-6">
-            <XPBar
-              label="DSA TRACKER PROGRESS"
-              current={overallStats.percent}
-              max={100}
-              color="#3B82F6"
-            />
-          </div>
+      {/* ── TOP STATS BLOCK */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#1E293B] border border-white/5 rounded-xl p-4 shadow-sm">
+          <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase block">Overall Progress</span>
+          <div className="text-xl font-bold text-white font-mono mt-1">{overallStats.percent}%</div>
+          <span className="text-[9px] text-slate-500 font-mono mt-1.5 block uppercase">{overallStats.completed} / {overallStats.total} subtopics done</span>
         </div>
 
-        {/* Stats Gauge Cards */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-          <div className="bg-surface border border-white/5 rounded-xl p-5 flex flex-col justify-between">
-            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block">
-              Total Solved Questions
-            </span>
-            <div className="text-4xl font-mono font-black text-cyber-cyan mt-4">
-              {totalManualSolved}
-            </div>
-            <span className="text-[9px] text-slate-500 font-mono block uppercase mt-2">
-              Sum of manual solves across subtopics
-            </span>
-          </div>
-
-          <div className="bg-surface border border-white/5 rounded-xl p-5 flex flex-col justify-between">
-            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block">
-              Total DSA Topics
-            </span>
-            <div className="text-4xl font-mono font-black text-white mt-4">
-              {topics.length}
-            </div>
-            <span className="text-[9px] text-slate-500 font-mono block uppercase mt-2">
-              Standard Striver A2Z categories
-            </span>
-          </div>
+        <div className="bg-[#1E293B] border border-white/5 rounded-xl p-4 shadow-sm">
+          <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase block">Solved Count</span>
+          <div className="text-xl font-bold text-blue-400 font-mono mt-1">{totalSolvedCount}</div>
+          <span className="text-[9px] text-slate-500 font-mono mt-1.5 block uppercase">Total Questions Logged</span>
         </div>
 
+        <div className="bg-[#1E293B] border border-white/5 rounded-xl p-4 shadow-sm">
+          <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase block">Remaining Subtopics</span>
+          <div className="text-xl font-bold text-yellow-500 font-mono mt-1">{remainingSubtopics}</div>
+          <span className="text-[9px] text-slate-500 font-mono mt-1.5 block uppercase">Subtopics to Complete</span>
+        </div>
+
+        <div className="bg-[#1E293B] border border-white/5 rounded-xl p-4 shadow-sm">
+          <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase block">DSA Curriculum</span>
+          <div className="text-xl font-bold text-white font-mono mt-1">{topics.length}</div>
+          <span className="text-[9px] text-slate-500 font-mono mt-1.5 block uppercase">Accordion Sections</span>
+        </div>
       </div>
 
-      {/* ── SYLLABUS LIST (ACCORDION STYLE LAYOUT) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-white/5">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">
-            Striver A2Z DSA Curriculum
+            DSA Topic List
           </h3>
           <span className="text-[10px] font-mono text-slate-500 uppercase">
-            Click topic headers to expand subtopics
+            Click headers to expand subtopics
           </span>
         </div>
 
+        {/* ── ACCORDION LIST */}
         {topics.map((topic) => {
           const isExpanded = !!expandedTopics[topic._id];
           
           return (
             <div
               key={topic._id}
-              className="bg-surface border border-white/5 rounded-xl overflow-hidden transition-all duration-200"
+              className="bg-[#1E293B] border border-white/5 rounded-xl overflow-hidden shadow-sm"
             >
               {/* Accordion Header */}
-              <div
-                onClick={() => toggleTopicExpand(topic._id)}
-                className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors"
-              >
-                <div className="flex items-center space-x-3.5 min-w-0">
-                  {topic.isCompleted ? (
-                    <CheckCircle2 size={18} className="text-green-500 flex-shrink-0" />
-                  ) : (
-                    <Code2 size={18} className="text-cyber-cyan flex-shrink-0" />
-                  )}
+              <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/10 hover:bg-slate-900/20 transition-colors">
+                <div
+                  onClick={() => toggleTopicExpand(topic._id)}
+                  className="flex items-center space-x-3.5 min-w-0 flex-1 cursor-pointer"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleParentTopic(topic._id, topic.isCompleted);
+                    }}
+                    className="text-slate-500 hover:text-blue-500 flex-shrink-0 cursor-pointer"
+                  >
+                    {topic.isCompleted ? (
+                      <CheckCircle2 size={18} className="text-green-500" />
+                    ) : (
+                      <Circle size={18} className="hover:text-blue-500" />
+                    )}
+                  </button>
                   <div className="min-w-0">
-                    <span className="text-xs font-black font-display text-white uppercase tracking-wider block">
+                    <span className="text-xs font-bold font-display text-white uppercase tracking-wider block">
                       {topic.topicName}
                     </span>
                     <span className="text-[9px] font-mono text-slate-500 uppercase block mt-0.5">
@@ -252,102 +222,86 @@ const DSA = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <span className="text-[10px] font-mono font-bold bg-[#0F172A] px-2.5 py-1 rounded border border-white/5 text-slate-400 uppercase">
-                    Solved: {topic.subtopics.reduce((acc, sub) => acc + (sub.questionsSolved || 0), 0)} Qs
-                  </span>
-                  {isExpanded ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+                <div className="flex items-center justify-between sm:justify-end gap-4">
+                  {/* Topic level Questions Done counter */}
+                  <div className="flex items-center space-x-2 bg-slate-950/60 border border-white/5 px-2.5 py-1 rounded-lg text-xs font-mono">
+                    <span className="text-[9px] text-slate-500 uppercase font-bold">Topic Qs:</span>
+                    <button
+                      onClick={() => handleStepParentQuestions(topic._id, topic.questionsSolved || 0, -1)}
+                      className="p-0.5 hover:text-blue-400 hover:bg-white/5 rounded cursor-pointer"
+                    >
+                      <Minus size={11} />
+                    </button>
+                    <span className="text-white font-bold font-mono w-6 text-center text-xs">
+                      {topic.questionsSolved || 0}
+                    </span>
+                    <button
+                      onClick={() => handleStepParentQuestions(topic._id, topic.questionsSolved || 0, 1)}
+                      className="p-0.5 hover:text-blue-400 hover:bg-white/5 rounded cursor-pointer"
+                    >
+                      <Plus size={11} />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => toggleTopicExpand(topic._id)}
+                    className="text-slate-500 p-1 hover:text-white"
+                  >
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
                 </div>
               </div>
 
               {/* Accordion Content Panel */}
               {isExpanded && (
-                <div className="border-t border-white/5 bg-black/10 divide-y divide-white/5 p-4 space-y-4">
+                <div className="border-t border-white/5 bg-slate-950/20 divide-y divide-white/5 px-5 py-3">
                   {topic.subtopics && topic.subtopics.length > 0 ? (
-                    topic.subtopics.map((sub) => {
-                      const editState = editSubStates[topic._id]?.[sub._id] || { questionsSolved: 0, revisionCount: 0, notes: '' };
-                      
-                      return (
-                        <div
-                          key={sub._id}
-                          className="py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-4 first:pt-0 last:pb-0"
-                        >
-                          {/* Checkbox & Subtopic Name */}
-                          <div className="flex items-center space-x-3 min-w-0 lg:max-w-xs">
-                            <button
-                              onClick={() => handleToggleSubtopic(topic._id, sub._id, sub.isCompleted)}
-                              className="text-slate-500 hover:text-cyber-cyan cursor-pointer flex-shrink-0"
-                            >
-                              {sub.isCompleted ? (
-                                <CheckCircle2 size={17} className="text-green-500 fill-green-500/10" />
-                              ) : (
-                                <Circle size={17} className="hover:text-cyber-cyan" />
-                              )}
-                            </button>
-                            <span className={`text-xs font-bold font-mono tracking-wide truncate ${sub.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                              {sub.name}
-                            </span>
-                          </div>
-
-                          {/* Controls Panel */}
-                          <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
-                            
-                            {/* Questions Solved Counter with + and - */}
-                            <div className="flex items-center space-x-2 bg-slate-950 border border-white/5 px-2.5 py-1 rounded-lg">
-                              <span className="text-[10px] text-slate-500 uppercase font-bold">Solved:</span>
-                              <button
-                                onClick={() => handleStepQuestionsSolved(topic._id, sub._id, sub.questionsSolved, -1)}
-                                className="p-0.5 hover:text-cyber-cyan hover:bg-white/5 rounded cursor-pointer"
-                              >
-                                <Minus size={11} />
-                              </button>
-                              <span className="text-white font-bold font-mono w-6 text-center text-xs">
-                                {editState.questionsSolved}
-                              </span>
-                              <button
-                                onClick={() => handleStepQuestionsSolved(topic._id, sub._id, sub.questionsSolved, 1)}
-                                className="p-0.5 hover:text-cyber-cyan hover:bg-white/5 rounded cursor-pointer"
-                              >
-                                <Plus size={11} />
-                              </button>
-                            </div>
-
-                            {/* Revisions Tracker */}
-                            <div className="flex items-center space-x-2 bg-slate-950 border border-white/5 px-2.5 py-1 rounded-lg">
-                              <span className="text-[10px] text-slate-500 uppercase font-bold">Revs:</span>
-                              <span className="text-white font-bold font-mono w-4 text-center text-xs">{editState.revisionCount}</span>
-                              <button
-                                onClick={() => handleSubChange(topic._id, sub._id, 'revisionCount', Number(editState.revisionCount) + 1)}
-                                className="p-0.5 hover:text-cyber-cyan hover:bg-white/5 rounded cursor-pointer"
-                              >
-                                <Plus size={11} />
-                              </button>
-                            </div>
-
-                            {/* Brief Notes */}
-                            <div className="flex items-center gap-2 flex-1 min-w-[240px]">
-                              <input
-                                type="text"
-                                placeholder="Optimization notes (e.g. O(N) space, two-pointers...)"
-                                value={editState.notes}
-                                onChange={(e) => handleSubChange(topic._id, sub._id, 'notes', e.target.value)}
-                                className="flex-1 min-w-[150px] px-2.5 py-1 rounded-lg border border-white/5 bg-slate-950 text-[10px] text-slate-300 font-mono focus:outline-none focus:border-cyber-cyan"
-                              />
-                              <button
-                                onClick={() => handleSaveSubtopic(topic._id, sub._id)}
-                                className="p-1.5 bg-white/5 hover:bg-cyber-cyan/10 hover:text-cyber-cyan rounded-lg border border-white/5 hover:border-cyber-cyan/20 cursor-pointer transition-all"
-                                title="Save Subtopic Settings"
-                              >
-                                <Save size={12} />
-                              </button>
-                            </div>
-
-                          </div>
+                    topic.subtopics.map((sub) => (
+                      <div
+                        key={sub._id}
+                        className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 first:pt-1 last:pb-1"
+                      >
+                        {/* Subtopic name and Checkbox */}
+                        <div className="flex items-center space-x-3.5 min-w-0">
+                          <button
+                            onClick={() => handleToggleSubtopic(topic._id, sub._id, sub.isCompleted)}
+                            className="text-slate-500 hover:text-blue-500 cursor-pointer flex-shrink-0"
+                          >
+                            {sub.isCompleted ? (
+                              <CheckCircle2 size={16} className="text-green-500 fill-green-500/5" />
+                            ) : (
+                              <Circle size={16} className="hover:text-blue-500" />
+                            )}
+                          </button>
+                          <span className={`text-[11px] font-mono tracking-wide truncate ${sub.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                            {sub.name}
+                          </span>
                         </div>
-                      );
-                    })
+
+                        {/* Subtopic Questions counter */}
+                        <div className="flex items-center space-x-2 bg-slate-950/60 border border-white/5 px-2.5 py-1 rounded-lg text-xs font-mono w-fit">
+                          <span className="text-[9px] text-slate-500 uppercase font-bold">Solved:</span>
+                          <button
+                            onClick={() => handleStepSubtopicQuestions(topic._id, sub._id, sub.questionsSolved || 0, -1)}
+                            className="p-0.5 hover:text-blue-400 hover:bg-white/5 rounded cursor-pointer"
+                          >
+                            <Minus size={11} />
+                          </button>
+                          <span className="text-white font-bold font-mono w-6 text-center text-xs">
+                            {sub.questionsSolved || 0}
+                          </span>
+                          <button
+                            onClick={() => handleStepSubtopicQuestions(topic._id, sub._id, sub.questionsSolved || 0, 1)}
+                            className="p-0.5 hover:text-blue-400 hover:bg-white/5 rounded cursor-pointer"
+                          >
+                            <Plus size={11} />
+                          </button>
+                        </div>
+
+                      </div>
+                    ))
                   ) : (
-                    <div className="text-center py-6 text-slate-500 italic text-xs font-mono">
+                    <div className="text-center py-4 text-slate-500 italic text-xs font-mono">
                       No subtopics loaded for this category.
                     </div>
                   )}

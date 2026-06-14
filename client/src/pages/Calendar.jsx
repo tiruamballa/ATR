@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
-import { Calendar as CalendarIcon, CheckCircle2, Circle, Layers } from 'lucide-react';
-import TiltCard from '../components/TiltCard';
+import { Calendar as CalendarIcon, CheckCircle2, Circle, ChevronDown, ChevronUp, BookOpen, Code2, BrainCircuit, ShieldAlert, Languages } from 'lucide-react';
 import XPBar from '../components/XPBar';
 
 const Calendar = () => {
@@ -9,17 +8,25 @@ const Calendar = () => {
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [expandedWeeks, setExpandedWeeks] = useState({});
 
-  const fetchPhases = async () => {
+  const fetchPhases = async (maintainSelection = false) => {
     try {
       const res = await apiRequest('/phases');
       if (res.success && res.phases.length > 0) {
-        // Sort chronologically
         const sorted = [...res.phases].sort((a, b) => {
           if (a.year !== b.year) return a.year - b.year;
           return a.monthIndex - b.monthIndex;
         });
         setPhases(sorted);
+
+        if (maintainSelection && selectedPhase) {
+          const updatedSelected = sorted.find(p => p._id === selectedPhase._id);
+          if (updatedSelected) {
+            setSelectedPhase(updatedSelected);
+            return;
+          }
+        }
 
         // Find active phase
         const activeRes = await apiRequest('/phases/current');
@@ -29,6 +36,11 @@ const Calendar = () => {
           if (found) initialPhase = found;
         }
         setSelectedPhase(initialPhase);
+
+        // Auto-expand the first week
+        if (initialPhase && initialPhase.weeks.length > 0) {
+          setExpandedWeeks({ [initialPhase.weeks[0].weekNumber]: true });
+        }
       }
     } catch (err) {
       console.error('Error loading roadmap phases:', err);
@@ -41,10 +53,35 @@ const Calendar = () => {
     fetchPhases();
   }, []);
 
+  const toggleWeekExpand = (weekNumber) => {
+    setExpandedWeeks(prev => ({
+      ...prev,
+      [weekNumber]: !prev[weekNumber]
+    }));
+  };
+
+  const handleToggleSubtopic = async (weekNumber, topicId, subtopicId, currentStatus) => {
+    try {
+      const res = await apiRequest(`/phases/${selectedPhase._id}/weeks/${weekNumber}/topics/${topicId}`, {
+        method: 'PUT',
+        body: {
+          subtopicId,
+          isCompleted: !currentStatus
+        }
+      });
+      if (res.success) {
+        // Reload phase data to trigger recalculations
+        await fetchPhases(true);
+      }
+    } catch (err) {
+      console.error('Failed to toggle calendar subtopic:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyber-cyan" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
       </div>
     );
   }
@@ -80,37 +117,35 @@ const Calendar = () => {
     return `Week ${weekNum} Focus`;
   };
 
-
-
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
+    <div className="space-y-6 max-w-5xl mx-auto px-1 py-3 select-none">
       
       {/* ── HEADER NAVIGATION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
         <div>
-          <div className="font-display text-[9px] text-slate-500 tracking-[0.2em] uppercase mb-1 font-mono">
-            Roadmap Timelines
-          </div>
-          <h1 className="text-2xl font-black font-display text-white tracking-widest">
+          <h1 className="text-2xl font-extrabold font-display text-white tracking-wide uppercase">
             ROADMAP OVERVIEW
           </h1>
+          <p className="text-xs text-slate-400 font-mono mt-1">
+            Execution Roadmap Milestones
+          </p>
         </div>
 
         {/* Dropdown Selector */}
         <div className="relative inline-block text-left">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center space-x-2.5 px-4 py-2.5 rounded-lg border border-white/10 hover:border-cyber-cyan bg-white/5 hover:bg-cyber-cyan/5 text-white font-mono text-xs tracking-wider transition-all cursor-pointer"
+            className="flex items-center space-x-2.5 px-4 py-2.5 rounded-lg border border-white/10 hover:border-blue-500 bg-slate-900 hover:bg-slate-900/80 text-white font-mono text-xs tracking-wider transition-all cursor-pointer shadow-sm"
           >
-            <CalendarIcon size={14} className="text-cyber-cyan" />
+            <CalendarIcon size={14} className="text-blue-500" />
             <span className="font-display font-semibold uppercase tracking-wider">
-              {selectedPhase ? `${selectedPhase.name} (${selectedPhase.monthName} ${selectedPhase.year})` : 'Select Month'}
+              {selectedPhase ? `${selectedPhase.name} (${selectedPhase.monthName})` : 'Select Phase'}
             </span>
             <span className="text-[10px] text-slate-500 ml-1">▼</span>
           </button>
           
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 rounded-xl border border-white/10 bg-[#111827] p-4.5 shadow-2xl z-30 max-h-[350px] overflow-y-auto">
+            <div className="absolute right-0 mt-2 w-80 rounded-xl border border-white/10 bg-[#1E293B] p-4 shadow-2xl z-30 max-h-[350px] overflow-y-auto">
               {Object.keys(phasesByYear).sort().map((year) => (
                 <div key={year} className="mb-3.5 last:mb-0">
                   <div className="text-[9px] font-bold tracking-[0.2em] text-slate-500 border-b border-white/5 pb-1 mb-2 font-mono">
@@ -125,10 +160,14 @@ const Calendar = () => {
                           onClick={() => {
                             setSelectedPhase(phase);
                             setDropdownOpen(false);
+                            // Reset expanded weeks for the new phase
+                            if (phase.weeks.length > 0) {
+                              setExpandedWeeks({ [phase.weeks[0].weekNumber]: true });
+                            }
                           }}
                           className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 ${
                             isSelected
-                              ? 'bg-cyber-cyan/15 border border-cyber-cyan/35 text-cyber-cyan'
+                              ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
                               : 'hover:bg-white/5 border border-transparent text-slate-300 hover:text-white'
                           }`}
                         >
@@ -136,8 +175,8 @@ const Calendar = () => {
                             <span className="font-display tracking-wider uppercase text-[10px] truncate max-w-[170px]">
                               {phase.name}
                             </span>
-                            <span className="font-mono text-[9px] text-slate-500">
-                              {phase.monthName.slice(0, 3)}
+                            <span className="font-mono text-[9px] text-slate-500 font-normal">
+                              {phase.monthName.split(' ')[0]}
                             </span>
                           </div>
                         </div>
@@ -153,30 +192,30 @@ const Calendar = () => {
 
       {/* ── PHASE HIGHLIGHT CARD */}
       {selectedPhase && (
-        <div className="bg-[#151B26] border border-white/5 rounded-xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="bg-[#1E293B] border border-white/5 rounded-xl p-6 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm">
           <div className="space-y-3 flex-1">
             <div className="flex items-center space-x-2.5">
-              <span className="p-2.5 rounded-xl bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/20">
-                <CalendarIcon size={18} />
+              <span className="p-2 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                <CalendarIcon size={16} />
               </span>
               <div>
-                <h2 className="font-display font-black text-lg text-white tracking-wide uppercase">
+                <h2 className="font-display font-bold text-base text-white tracking-wide uppercase">
                   {selectedPhase.name}
                 </h2>
-                <p className="text-[10px] font-mono text-cyber-cyan font-semibold tracking-widest uppercase">
-                  {selectedPhase.monthName} {selectedPhase.year}
+                <p className="text-[10px] font-mono text-blue-500 font-semibold tracking-wider uppercase">
+                  {selectedPhase.monthName}
                 </p>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 text-xs">
               <div>
                 <span className="block text-slate-500 uppercase tracking-widest text-[9px] font-bold font-mono">Skill Focus</span>
                 <span className="text-white font-semibold">{selectedPhase.primarySkill}</span>
               </div>
               <div>
-                <span className="block text-slate-500 uppercase tracking-widest text-[9px] font-bold font-mono">Month Goal Description</span>
-                <span className="text-slate-300 font-semibold block mt-0.5">{selectedPhase.goal}</span>
+                <span className="block text-slate-500 uppercase tracking-widest text-[9px] font-bold font-mono">Month Goal</span>
+                <span className="text-slate-300 font-medium block mt-0.5">{selectedPhase.goal}</span>
               </div>
             </div>
           </div>
@@ -187,85 +226,155 @@ const Calendar = () => {
               label="PHASE COMPLETION %"
               current={Math.round(selectedPhase.completionPercentage || 0)}
               max={100}
-              color="#22D3EE"
+              color="#3B82F6"
             />
           </div>
         </div>
       )}
 
-      {/* ── 4-WEEK SYLLABUS CARDS GRID */}
+      {/* ── ACCORDION WEEKS LIST */}
       {selectedPhase && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
           {selectedPhase.weeks.map((w) => {
             const creativeWeekName = getWeekName(selectedPhase.name, w.weekNumber);
-            const total = w.topics.length;
-            const completed = w.topics.filter(t => t.isCompleted).length;
-            const completionPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            const isExpanded = !!expandedWeeks[w.weekNumber];
+            
+            // Calculate week completion based on topics
+            const totalTopics = w.topics.length;
+            const completedTopics = w.topics.filter(t => t.isCompleted).length;
+            const completionPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
 
             return (
-              <TiltCard key={w.weekNumber}>
-                <div className="cyber-card flex flex-col min-h-[320px] h-full justify-between">
-                  <div>
-                    {/* Card Header */}
-                    <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
-                      <div>
-                        <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider block">Week {w.weekNumber}</span>
-                        <h3 className="font-display font-bold text-xs tracking-wider uppercase text-white mt-0.5">
-                          {creativeWeekName}
-                        </h3>
-                      </div>
-                      <span className="px-2 py-0.5 rounded bg-cyber-cyan/10 border border-cyber-cyan/20 text-[9px] font-mono text-cyber-cyan font-bold">
-                        {completionPercent}% DONE
+              <div key={w.weekNumber} className="bg-[#1E293B] border border-white/5 rounded-xl overflow-hidden shadow-sm">
+                
+                {/* Week Header */}
+                <div
+                  onClick={() => toggleWeekExpand(w.weekNumber)}
+                  className="px-5 py-4 bg-slate-900/10 hover:bg-slate-900/20 flex items-center justify-between cursor-pointer transition-colors border-b border-white/5"
+                >
+                  <div className="flex items-center space-x-3.5 min-w-0">
+                    <span className="text-blue-500 font-mono text-xs font-bold">W{w.weekNumber}</span>
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider font-display truncate">
+                        {creativeWeekName}
+                      </h3>
+                      <span className="text-[9px] font-mono text-slate-500 block mt-0.5">
+                        {completedTopics} / {totalTopics} Topics Completed • {completionPercent}% Done
                       </span>
                     </div>
+                  </div>
 
-                    {/* Topics Sub-Checklist */}
-                    <div className="space-y-3">
-                      {w.topics.length > 0 ? (
-                        w.topics.map((topic) => (
-                          <div
-                            key={topic._id}
-                            className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
-                              topic.isCompleted
-                                ? 'bg-cyber-cyan/5 border-cyber-cyan/15 text-slate-500 line-through'
-                                : 'bg-white/5 border-white/5 text-white'
-                            }`}
-                          >
-                            <div className="flex items-start space-x-2.5 min-w-0">
-                              <span className="mt-0.5 flex-shrink-0 text-slate-500">
-                                {topic.isCompleted ? (
-                                  <CheckCircle2 size={15} className="text-cyber-cyan" />
-                                ) : (
-                                  <Circle size={15} className="text-slate-500" />
-                                )}
-                              </span>
-                              <span className={`text-[11px] font-mono leading-relaxed truncate ${topic.isCompleted ? 'text-slate-500' : 'text-slate-200'}`}>
-                                {topic.name}
-                              </span>
-                            </div>
-
-                            <span className={`px-2 py-0.5 text-[8px] font-mono font-bold uppercase tracking-wider rounded ${
-                              topic.category === 'DSA'
-                                ? 'bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/10'
-                                : topic.category === 'Aptitude'
-                                ? 'bg-cyber-yellow/10 text-cyber-yellow border border-cyber-yellow/10'
-                                : topic.category === 'IP Skills'
-                                ? 'bg-cyber-purple/10 text-cyber-purple border border-cyber-purple/10'
-                                : 'bg-white/5 text-slate-400 border border-white/5'
-                            }`}>
-                              {topic.category}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex items-center justify-center text-xs text-slate-600 italic py-12 font-mono">
-                          No targets defined for this week.
-                        </div>
-                      )}
+                  <div className="flex items-center space-x-4">
+                    <div className="w-20 bg-slate-950 h-1 rounded-full overflow-hidden border border-white/5 hidden sm:block">
+                      <div className="bg-blue-500 h-full" style={{ width: `${completionPercent}%` }} />
                     </div>
+                    {isExpanded ? <ChevronUp size={15} className="text-slate-500" /> : <ChevronDown size={15} className="text-slate-500" />}
                   </div>
                 </div>
-              </TiltCard>
+
+                {/* Week Accordion Content */}
+                {isExpanded && (
+                  <div className="p-5 bg-slate-900/20 divide-y divide-white/5 space-y-5">
+                    {w.topics.map((topic) => {
+                      const categoryIcons = {
+                        'Development': BookOpen,
+                        'DSA': Code2,
+                        'Aptitude': BrainCircuit,
+                        'IP Skills': ShieldAlert
+                      };
+                      const CategoryIcon = categoryIcons[topic.category] || BookOpen;
+
+                      // Display planned targets if defined
+                      let targetDisplay = null;
+                      if (topic.category === 'DSA' && topic.practiceTarget) {
+                        targetDisplay = `Question Target: ${topic.practiceTarget}`;
+                      } else if (topic.category === 'Aptitude' && topic.practiceTarget) {
+                        targetDisplay = `Practice Target: ${topic.practiceTarget}`;
+                      }
+
+                      return (
+                        <div key={topic._id} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          
+                          {/* Topic Details Column */}
+                          <div className="md:col-span-1 space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-blue-400 flex-shrink-0"><CategoryIcon size={14} /></span>
+                              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
+                                {topic.category}
+                              </span>
+                            </div>
+                            <h4 className="text-xs font-bold text-white tracking-wide uppercase">
+                              {topic.name}
+                            </h4>
+                            {targetDisplay && (
+                              <span className="block text-[10px] text-blue-400 font-mono mt-1">
+                                {targetDisplay}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Subtopics Checklist Column */}
+                          <div className="md:col-span-2 space-y-2.5">
+                            {topic.subtopics && topic.subtopics.length > 0 ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {topic.subtopics.map((sub) => (
+                                  <div
+                                    key={sub._id}
+                                    onClick={() => handleToggleSubtopic(w.weekNumber, topic._id, sub._id, sub.isCompleted)}
+                                    className={`p-2.5 rounded-lg border flex items-center space-x-2.5 cursor-pointer transition-all ${
+                                      sub.isCompleted
+                                        ? 'bg-blue-500/5 border-blue-500/10 text-slate-500'
+                                        : 'bg-[#1E293B]/40 border-white/5 text-slate-200 hover:border-blue-500/20'
+                                    }`}
+                                  >
+                                    <span className="flex-shrink-0">
+                                      {sub.isCompleted ? (
+                                        <CheckCircle2 size={14} className="text-green-500" />
+                                      ) : (
+                                        <Circle size={14} className="text-slate-500 hover:text-blue-500" />
+                                      )}
+                                    </span>
+                                    <span className={`text-[10px] font-mono tracking-wide truncate ${sub.isCompleted ? 'line-through' : ''}`}>
+                                      {sub.name}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-slate-500 italic font-mono pt-1">
+                                No subtopics specified.
+                              </div>
+                            )}
+                          </div>
+
+                        </div>
+                      );
+                    })}
+
+                    {/* Standard English Speaking module (Rendered automatically per week if no database match) */}
+                    <div className="py-4 last:pb-0 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-white/5">
+                      <div className="md:col-span-1 space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-blue-400 flex-shrink-0"><Languages size={14} /></span>
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
+                            English Speaking
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-white tracking-wide uppercase">
+                          Speaking Practice
+                        </h4>
+                      </div>
+                      <div className="md:col-span-2 flex items-center">
+                        <div className="p-3 bg-[#1E293B]/40 border border-white/5 rounded-xl text-[10px] text-slate-400 font-mono w-full">
+                          Task: Daily 15-minute speaking logs. Complete conversational sessions or public speaking mock prep.
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
             );
           })}
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
-import { BrainCircuit, CheckCircle2, Circle, Save, ChevronDown, ChevronUp, AlertCircle, HelpCircle } from 'lucide-react';
+import { BrainCircuit, CheckCircle2, Circle, ChevronDown, ChevronUp, Save, Plus, Minus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import XPBar from '../components/XPBar';
 
@@ -17,9 +17,8 @@ const Aptitude = () => {
     'PART 4 Vocabulary': false
   });
 
-  // Local editing states: { topicId: { progress, notes } }
+  // Local editing states: { topicId: { questionsSolved, accuracyPercent, revisionCount, notes } }
   const [editStates, setEditStates] = useState({});
-  const [editSubStates, setEditSubStates] = useState({});
 
   const fetchAptitudeData = async () => {
     try {
@@ -30,26 +29,17 @@ const Aptitude = () => {
 
         // Populate local edit states
         const initialStates = {};
-        const initialSubStates = {};
         Object.keys(data.grouped).forEach(part => {
           data.grouped[part].forEach(topic => {
             initialStates[topic._id] = {
-              progress: topic.progress || 0,
+              questionsSolved: topic.questionsSolved || 0,
+              accuracyPercent: topic.accuracyPercent || 0,
+              revisionCount: topic.revisionCount || 0,
               notes: topic.notes || ''
             };
-            initialSubStates[topic._id] = {};
-            (topic.subtopics || []).forEach(sub => {
-              initialSubStates[topic._id][sub._id] = {
-                questionsSolved: sub.questionsSolved || 0,
-                accuracyPercent: sub.accuracyPercent || 0,
-                revisionCount: sub.revisionCount || 0,
-                notes: sub.notes || ''
-              };
-            });
           });
         });
         setEditStates(initialStates);
-        setEditSubStates(initialSubStates);
       }
     } catch (err) {
       console.error('Failed to load Aptitude syllabus details:', err);
@@ -69,7 +59,7 @@ const Aptitude = () => {
     }));
   };
 
-  const handleLocalChange = (topicId, field, value) => {
+  const handleFieldChange = (topicId, field, value) => {
     setEditStates(prev => ({
       ...prev,
       [topicId]: {
@@ -79,52 +69,37 @@ const Aptitude = () => {
     }));
   };
 
-  const handleSubChange = (topicId, subtopicId, field, value) => {
-    setEditSubStates(prev => ({
-      ...prev,
-      [topicId]: {
-        ...prev[topicId],
-        [subtopicId]: {
-          ...prev[topicId][subtopicId],
-          [field]: value
-        }
-      }
-    }));
-  };
-
-  const handleSaveTopic = async (topicId) => {
-    const state = editStates[topicId];
-    if (!state) return;
+  const handleStepQuestionsSolved = async (topicId, currentVal, increment) => {
+    const newVal = Math.max(0, currentVal + increment);
+    handleFieldChange(topicId, 'questionsSolved', newVal);
 
     try {
       const data = await apiRequest(`/aptitude/topics/${topicId}`, {
         method: 'PUT',
         body: {
-          notes: state.notes
+          questionsSolved: newVal
         }
       });
       if (data.success) {
         await fetchAptitudeData();
       }
     } catch (err) {
-      console.error('Failed to update aptitude topic notes:', err);
+      console.error('Failed to step questions solved:', err);
     }
   };
 
-  const handleToggleSubtopic = async (topicId, subtopicId, currentStatus) => {
+  const handleToggleParentTopic = async (topicId, currentStatus) => {
     const nextStatus = !currentStatus;
     try {
       const data = await apiRequest(`/aptitude/topics/${topicId}`, {
         method: 'PUT',
         body: {
-          subtopicId,
-          subCompleted: nextStatus
+          isCompleted: nextStatus
         }
       });
       if (data.success) {
         await fetchAptitudeData();
-        
-        if (data.topic.isCompleted && !currentStatus) {
+        if (nextStatus) {
           confetti({
             particleCount: 40,
             spread: 50,
@@ -134,37 +109,36 @@ const Aptitude = () => {
         }
       }
     } catch (err) {
-      console.error('Failed to toggle subtopic status:', err);
+      console.error('Failed to toggle Aptitude topic completion:', err);
     }
   };
 
-  const handleSaveSubtopic = async (topicId, subtopicId) => {
-    const subState = editSubStates[topicId]?.[subtopicId];
-    if (!subState) return;
+  const handleSaveTopicMetrics = async (topicId) => {
+    const state = editStates[topicId];
+    if (!state) return;
 
     try {
       const data = await apiRequest(`/aptitude/topics/${topicId}`, {
         method: 'PUT',
         body: {
-          subtopicId,
-          questionsSolved: Number(subState.questionsSolved),
-          accuracyPercent: Number(subState.accuracyPercent),
-          revisionCount: Number(subState.revisionCount),
-          subNotes: subState.notes
+          questionsSolved: Number(state.questionsSolved),
+          accuracyPercent: Number(state.accuracyPercent),
+          revisionCount: Number(state.revisionCount),
+          notes: state.notes
         }
       });
       if (data.success) {
         await fetchAptitudeData();
       }
     } catch (err) {
-      console.error('Failed to save subtopic properties:', err);
+      console.error('Failed to save aptitude topic metrics:', err);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyber-cyan" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
       </div>
     );
   }
@@ -176,44 +150,55 @@ const Aptitude = () => {
     'PART 4 Vocabulary'
   ];
 
+  // Calculate sum of all solved questions across parts
+  let overallSolvedQuestions = 0;
+  Object.keys(groupedTopics).forEach(part => {
+    groupedTopics[part].forEach(t => {
+      overallSolvedQuestions += (t.questionsSolved || 0);
+    });
+  });
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-1 py-3 select-none">
+    <div className="space-y-6 max-w-5xl mx-auto px-1 py-3 select-none">
       
       {/* ── TOP HIGHLIGHT PROGRESS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Progress Card */}
-        <div className="lg:col-span-1 bg-[#151B26] border border-white/5 rounded-xl p-5 flex flex-col justify-between border-l-4 border-l-cyber-yellow">
+        <div className="lg:col-span-1 bg-[#1E293B] border border-white/5 rounded-xl p-5 flex flex-col justify-between border-l-4 border-l-yellow-500 shadow-sm">
           <div className="space-y-1">
-            <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase">
+            <span className="text-[10px] text-slate-500 font-mono tracking-wider uppercase block">
               Aptitude syllabus completion
             </span>
-            <h2 className="text-3xl font-display font-black text-white leading-none">
-              {overallStats.completed} <span className="text-xs font-mono font-semibold text-slate-400">/ {overallStats.total} Solved</span>
+            <h2 className="text-2xl font-black text-white leading-none font-mono">
+              {overallStats.completed} <span className="text-xs font-mono font-semibold text-slate-400">/ {overallStats.total} Chapters Done</span>
             </h2>
           </div>
 
-          <div className="space-y-2 mt-6">
+          <div className="space-y-2 mt-4">
             <XPBar
-              label="APTITUDE PREP TREE %"
+              label="APTITUDE PREP TREE"
               current={overallStats.percent}
               max={100}
-              color="#FACC15"
+              color="#F59E0B"
             />
           </div>
         </div>
 
-        {/* Text descriptions */}
-        <div className="lg:col-span-2 bg-[#151B26] border border-white/5 rounded-xl p-5 relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-yellow/5 rounded-full blur-[80px]" />
-          <div className="relative z-10 space-y-3">
+        {/* Info Box */}
+        <div className="lg:col-span-2 bg-[#1E293B] border border-white/5 rounded-xl p-5 relative overflow-hidden flex flex-col justify-between shadow-sm">
+          <div className="space-y-3">
             <h3 className="font-display font-bold text-white text-xs tracking-wider uppercase flex items-center gap-2">
-              <BrainCircuit className="text-cyber-yellow" size={16} />
+              <BrainCircuit className="text-yellow-500" size={15} />
               Logical & Quantitative Core Syllabus
             </h3>
             <p className="text-[11px] text-slate-400 font-body leading-relaxed">
-              This module tracks topics from standard quantitative, analytical reasoning, corporate grammar, and vocabulary lists. Log study progress percentages, toggle completions, and store key notes for preparation reviews.
+              This module tracks standard book chapters split into four core parts. Record questions solved count, accuracy rates, revision sessions, and custom notes to monitor placement preparation.
             </p>
+          </div>
+          <div className="flex items-center space-x-6 text-[10px] font-mono text-slate-500 mt-4 border-t border-white/5 pt-2">
+            <span>Overall Solved: <span className="text-white font-bold">{overallSolvedQuestions} Qs</span></span>
+            <span>Total Chapters: <span className="text-white font-bold">{overallStats.total}</span></span>
           </div>
         </div>
 
@@ -230,179 +215,152 @@ const Aptitude = () => {
           const partPercent = partTotal > 0 ? Math.round((partCompleted / partTotal) * 100) : 0;
 
           return (
-            <div key={partName} className="bg-[#151B26] border border-white/5 rounded-xl overflow-hidden shadow-xl">
+            <div key={partName} className="bg-[#1E293B] border border-white/5 rounded-xl overflow-hidden shadow-sm">
               
               {/* Accordion header toggle */}
               <div
                 onClick={() => togglePart(partName)}
-                className="px-6 py-4.5 bg-white/[0.01] hover:bg-white/[0.02] border-b border-white/5 flex items-center justify-between cursor-pointer select-none transition-all"
+                className="px-5 py-4 bg-slate-900/10 hover:bg-slate-900/20 border-b border-white/5 flex items-center justify-between cursor-pointer select-none transition-all"
               >
                 <div className="flex items-center space-x-3.5 min-w-0">
-                  <span className="text-cyber-yellow"><BrainCircuit size={16} /></span>
+                  <span className="text-yellow-500"><BrainCircuit size={15} /></span>
                   <div className="min-w-0">
                     <h3 className="text-xs font-bold text-white uppercase tracking-wider truncate font-display">
                       {partName}
                     </h3>
                     <span className="text-[9px] text-slate-500 font-mono block mt-0.5 uppercase">
-                      {partCompleted} / {partTotal} Topics Completed • {partPercent}% Done
+                      {partCompleted} / {partTotal} Chapters Completed • {partPercent}% Done
                     </span>
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-4">
-                  <div className="w-24 bg-slate-900 h-1.5 rounded-full overflow-hidden border border-white/5 hidden sm:block">
-                    <div className="bg-cyber-yellow h-full" style={{ width: `${partPercent}%` }} />
+                  <div className="w-20 bg-slate-950 h-1 rounded-full overflow-hidden border border-white/5 hidden sm:block">
+                    <div className="bg-yellow-500 h-full" style={{ width: `${partPercent}%` }} />
                   </div>
                   <span className="text-slate-500">
-                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                   </span>
                 </div>
               </div>
 
               {/* Accordion body list */}
               {isExpanded && (
-                <div className="divide-y divide-white/5">
+                <div className="divide-y divide-white/5 px-5 py-2 bg-slate-950/20">
                   {list.length > 0 ? (
                     list.map((topic) => {
-                      const values = editStates[topic._id] || { progress: 0, notes: '' };
+                      const editState = editStates[topic._id] || { questionsSolved: 0, accuracyPercent: 0, revisionCount: 0, notes: '' };
+                      
                       return (
                         <div
                           key={topic._id}
-                          className={`p-5 flex flex-col space-y-4 transition-all duration-150 border-b border-white/5 ${
-                            topic.isCompleted ? 'bg-cyber-yellow/[0.01]' : 'hover:bg-white/[0.01]'
-                          }`}
+                          className="py-4.5 flex flex-col space-y-3.5 first:pt-2 last:pb-2"
                         >
-                          {/* Parent Row: Topic Name & Notes */}
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            {/* Left: Complete Checkbox and Name */}
-                            <div className="flex items-start space-x-3 flex-1 min-w-0">
-                              <div className="min-w-0">
-                                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                                  <h4 className={`text-xs font-bold font-mono tracking-wide ${topic.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                                    {topic.topicName}
-                                  </h4>
-                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold border flex-shrink-0 ${
-                                    topic.isCompleted
-                                      ? 'bg-green-500/10 text-green-400 border-green-500/15'
-                                      : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/15'
-                                  }`}>
-                                    {topic.isCompleted ? 'COMPLETED' : 'IN PROGRESS'}
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-2.5 mt-1.5 font-mono text-[9px] text-slate-500">
-                                  <span>Dynamic Progress: <span className="text-white font-bold">{topic.progress}%</span></span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Middle: Notes and Actions */}
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <input
-                                type="text"
-                                placeholder="Insert notes, formulas, or review pointers..."
-                                value={values.notes}
-                                onChange={(e) => handleLocalChange(topic._id, 'notes', e.target.value)}
-                                className="flex-1 px-3 py-1.5 rounded-lg border border-white/5 bg-black/25 text-[10px] text-slate-300 font-mono focus:outline-none focus:border-cyber-yellow"
-                              />
+                          {/* Header Row: Checkbox, Name, and Status */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center space-x-3 min-w-0">
                               <button
-                                onClick={() => handleSaveTopic(topic._id)}
-                                title="Save Notes"
-                                className="p-2 bg-white/5 hover:bg-cyber-yellow/10 hover:text-cyber-yellow rounded-lg border border-white/5 hover:border-cyber-yellow/20 transition-all cursor-pointer flex-shrink-0"
+                                onClick={() => handleToggleParentTopic(topic._id, topic.isCompleted)}
+                                className="text-slate-500 hover:text-yellow-500 cursor-pointer flex-shrink-0"
                               >
-                                <Save size={12} />
+                                {topic.isCompleted ? (
+                                  <CheckCircle2 size={17} className="text-green-500" />
+                                ) : (
+                                  <Circle size={17} className="hover:text-yellow-500" />
+                                )}
                               </button>
+                              <span className={`text-xs font-bold font-mono tracking-wide ${topic.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                                {topic.topicName}
+                              </span>
                             </div>
+                            
+                            <span className={`px-2 py-0.5 text-[8px] font-mono font-bold uppercase rounded border w-fit ${
+                              topic.isCompleted
+                                ? 'bg-green-500/10 text-green-400 border-green-500/10'
+                                : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/10'
+                            }`}>
+                              {topic.isCompleted ? 'Completed' : 'In Progress'}
+                            </span>
                           </div>
 
-                          {/* Nested Subtopics Grid */}
-                          {topic.subtopics && topic.subtopics.length > 0 && (
-                            <div className="pl-6 border-l border-white/5 space-y-2.5">
-                              <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono">
-                                Subtopic Curriculum Checklist
-                              </span>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {topic.subtopics.map((sub) => {
-                                  const subState = editSubStates[topic._id]?.[sub._id] || { questionsSolved: 0, accuracyPercent: 0, notes: '' };
-                                  return (
-                                    <div
-                                      key={sub._id}
-                                      className={`p-3 rounded-xl border flex flex-col justify-between space-y-3 transition-all ${
-                                        sub.isCompleted
-                                          ? 'bg-cyber-yellow/5 border-cyber-yellow/15 text-slate-500'
-                                          : 'bg-black/20 border-white/5 text-white'
-                                      }`}
-                                    >
-                                      {/* Subtopic Header: checkbox & name */}
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="flex items-center space-x-2.5 min-w-0">
-                                          <button
-                                            onClick={() => handleToggleSubtopic(topic._id, sub._id, sub.isCompleted)}
-                                            className="text-slate-500 hover:text-cyber-yellow cursor-pointer flex-shrink-0"
-                                          >
-                                            {sub.isCompleted ? (
-                                              <CheckCircle2 size={15} className="text-cyber-yellow fill-cyber-yellow/10" />
-                                            ) : (
-                                              <Circle size={15} className="hover:text-cyber-yellow" />
-                                            )}
-                                          </button>
-                                          <span className={`text-[10px] font-mono font-bold leading-relaxed truncate ${sub.isCompleted ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                                            {sub.name}
-                                          </span>
-                                        </div>
-                                        <span className={`px-1.5 py-0.5 text-[8px] font-mono font-bold uppercase rounded border ${
-                                          sub.isCompleted
-                                            ? 'bg-green-500/10 text-green-400 border-green-500/10'
-                                            : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/10'
-                                        }`}>
-                                          {sub.isCompleted ? 'Done' : 'Study'}
-                                        </span>
-                                      </div>
-
-                                      {/* Subtopic Metrics Controls */}
-                                      <div className="grid grid-cols-3 gap-2 text-[9px] font-mono text-slate-500 pt-2 border-t border-white/5">
-                                        <div>
-                                          <span className="block text-[8px] text-slate-600 uppercase">Questions</span>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            value={subState.questionsSolved}
-                                            onChange={(e) => handleSubChange(topic._id, sub._id, 'questionsSolved', parseInt(e.target.value) || 0)}
-                                            className="w-full bg-black/40 text-white border border-white/5 rounded px-1.5 py-0.5 mt-0.5 text-center focus:outline-none focus:border-cyber-yellow font-bold text-[9px]"
-                                          />
-                                        </div>
-                                        <div>
-                                          <span className="block text-[8px] text-slate-600 uppercase">Accuracy %</span>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            value={subState.accuracyPercent}
-                                            onChange={(e) => handleSubChange(topic._id, sub._id, 'accuracyPercent', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                                            className="w-full bg-black/40 text-white border border-white/5 rounded px-1.5 py-0.5 mt-0.5 text-center focus:outline-none focus:border-cyber-yellow font-bold text-[9px]"
-                                          />
-                                        </div>
-                                        <div className="flex flex-col justify-end">
-                                          <button
-                                            onClick={() => handleSaveSubtopic(topic._id, sub._id)}
-                                            className="w-full py-0.5 bg-white/5 hover:bg-cyber-yellow/10 hover:text-cyber-yellow border border-white/10 hover:border-cyber-yellow/25 rounded cursor-pointer transition-all flex items-center justify-center font-bold text-[8px] h-[20px]"
-                                          >
-                                            <Save size={10} className="mr-0.5" /> Save
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                          {/* Metrics Controls Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end pt-2 border-t border-white/5/50">
+                            
+                            {/* Questions Solved Counter */}
+                            <div className="space-y-1.5">
+                              <span className="block text-[9px] text-slate-500 font-mono uppercase font-bold">Solved:</span>
+                              <div className="flex items-center space-x-2 bg-slate-950 border border-white/5 px-2 py-1 rounded-lg justify-between h-9">
+                                <button
+                                  onClick={() => handleStepQuestionsSolved(topic._id, editState.questionsSolved || 0, -1)}
+                                  className="p-1 text-slate-400 hover:text-yellow-500 cursor-pointer"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="text-white font-bold font-mono text-xs text-center w-8">
+                                  {editState.questionsSolved}
+                                </span>
+                                <button
+                                  onClick={() => handleStepQuestionsSolved(topic._id, editState.questionsSolved || 0, 1)}
+                                  className="p-1 text-slate-400 hover:text-yellow-500 cursor-pointer"
+                                >
+                                  <Plus size={12} />
+                                </button>
                               </div>
                             </div>
-                          )}
+
+                            {/* Accuracy input */}
+                            <div className="space-y-1.5">
+                              <span className="block text-[9px] text-slate-500 font-mono uppercase font-bold">Accuracy %:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={editState.accuracyPercent}
+                                onChange={(e) => handleFieldChange(topic._id, 'accuracyPercent', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                className="w-full bg-slate-950 text-white border border-white/5 rounded-lg px-2.5 h-9 text-center focus:outline-none focus:border-yellow-500 font-bold font-mono text-xs"
+                              />
+                            </div>
+
+                            {/* Revision count input */}
+                            <div className="space-y-1.5">
+                              <span className="block text-[9px] text-slate-500 font-mono uppercase font-bold">Revision:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={editState.revisionCount}
+                                onChange={(e) => handleFieldChange(topic._id, 'revisionCount', parseInt(e.target.value) || 0)}
+                                className="w-full bg-slate-950 text-white border border-white/5 rounded-lg px-2.5 h-9 text-center focus:outline-none focus:border-yellow-500 font-bold font-mono text-xs"
+                              />
+                            </div>
+
+                            {/* Notes input */}
+                            <div className="space-y-1.5 md:col-span-2 flex items-end gap-2.5">
+                              <div className="space-y-1.5 flex-1 min-w-0">
+                                <span className="block text-[9px] text-slate-500 font-mono uppercase font-bold">Formula & Review Notes:</span>
+                                <input
+                                  type="text"
+                                  placeholder="Review pointer notes..."
+                                  value={editState.notes}
+                                  onChange={(e) => handleFieldChange(topic._id, 'notes', e.target.value)}
+                                  className="w-full bg-slate-950 text-slate-300 border border-white/5 rounded-lg px-3 h-9 text-xs focus:outline-none focus:border-yellow-500 font-mono"
+                                />
+                              </div>
+                              <button
+                                onClick={() => handleSaveTopicMetrics(topic._id)}
+                                className="h-9 px-3 bg-white/5 hover:bg-yellow-500/10 hover:text-yellow-500 border border-white/10 hover:border-yellow-500/30 rounded-lg flex items-center justify-center cursor-pointer transition-all shrink-0"
+                                title="Save metrics & notes"
+                              >
+                                <Save size={14} />
+                              </button>
+                            </div>
+
+                          </div>
                         </div>
                       );
                     })
                   ) : (
-                    <div className="text-center py-12 text-slate-600 italic text-xs font-mono flex items-center justify-center gap-1.5">
-                      <HelpCircle size={15} />
-                      <span>No topics mapped under this part.</span>
+                    <div className="text-center py-6 text-slate-500 italic text-xs font-mono">
+                      No chapters loaded under this part.
                     </div>
                   )}
                 </div>

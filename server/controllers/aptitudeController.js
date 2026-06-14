@@ -80,13 +80,29 @@ exports.updateAptitudeTopic = async (req, res, next) => {
           sub.notes = subNotes;
         }
       }
-    }
-
-    // Automatically check and set parent topic completion
-    if (topic.subtopics && topic.subtopics.length > 0) {
-      topic.isCompleted = topic.subtopics.every(s => s.isCompleted);
-    } else if (isCompleted !== undefined) {
-      topic.isCompleted = isCompleted;
+      // Automatically check and set parent topic completion
+      if (topic.subtopics && topic.subtopics.length > 0) {
+        topic.isCompleted = topic.subtopics.every(s => s.isCompleted);
+      }
+    } else {
+      if (questionsSolved !== undefined) {
+        topic.questionsSolved = Number(questionsSolved);
+      }
+      if (accuracyPercent !== undefined) {
+        topic.accuracyPercent = Number(accuracyPercent);
+      }
+      if (revisionCount !== undefined) {
+        topic.revisionCount = Number(revisionCount);
+      }
+      if (isCompleted !== undefined) {
+        topic.isCompleted = isCompleted;
+        // Shortcut: toggle all subtopics when parent is toggled
+        if (topic.subtopics && topic.subtopics.length > 0) {
+          topic.subtopics.forEach(s => {
+            s.isCompleted = isCompleted;
+          });
+        }
+      }
     }
 
     await topic.save();
