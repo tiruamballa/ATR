@@ -36,7 +36,7 @@ const Login = () => {
             ATR
           </h1>
           <p className="text-xs text-slate-400 mt-2 font-body tracking-wider font-semibold">
-            Tiru Naidu
+            Tiru Amballa
           </p>
         </div>
 

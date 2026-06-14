@@ -99,7 +99,7 @@ const Register = () => {
               CREATE ACCOUNT
             </h1>
             <p className="text-xs text-slate-400 mt-2 font-body">
-              Academic & Technical Roadmap Tracker • B.Tech IT
+              Adaptive Tracking & Roadmap • B.Tech IT
             </p>
           </div>
 

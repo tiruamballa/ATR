@@ -159,7 +159,7 @@ const Dashboard = () => {
             TODAY'S COMMAND CENTER
           </h1>
           <p className="text-xs text-slate-400 font-mono mt-1">
-            Student: <span className="text-blue-500 font-bold">Tiru Naidu</span> • Roadmap Start: <span className="text-white font-semibold">15 June 2026</span>
+            Student: <span className="text-blue-500 font-bold">Tiru Amballa</span> • Roadmap Start: <span className="text-white font-semibold">15 June 2026</span>
           </p>
         </div>
       </div>

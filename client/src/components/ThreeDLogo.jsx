@@ -70,7 +70,7 @@ const ThreeDLogo = ({ size = 60 }) => {
           }}
         >
           <span className="font-display text-[9px] font-bold text-cyber-purple">
-            OS
+            OM
           </span>
         </div>
       </motion.div>

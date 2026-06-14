@@ -1,7 +1,7 @@
 {
   "name": "atr-server",
   "version": "1.0.0",
-  "description": "ATR Academic & Technical Roadmap Tracker Backend",
+  "description": "ATR Adaptive Tracking & Roadmap Backend",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {

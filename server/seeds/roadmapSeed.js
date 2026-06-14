@@ -47,7 +47,7 @@ const seedDatabase = async (options = { closeConnection: true }) => {
     let demoUser = await User.findOne({ email: 'tiruamballa@atr.com' });
     if (!demoUser) {
       demoUser = await User.create({
-        name: 'Tiru Naidu',
+        name: 'Tiru Amballa',
         email: 'tiruamballa@atr.com',
         password: '100207',
         leetcodeUsername: '',
@@ -63,7 +63,7 @@ const seedDatabase = async (options = { closeConnection: true }) => {
       demoUser.studyHoursTarget = 4;
       demoUser.dsaTarget = 4;
       demoUser.attendanceTarget = 75;
-      demoUser.name = 'Tiru Naidu';
+      demoUser.name = 'Tiru Amballa';
       await demoUser.save();
     }
 
