@@ -11,10 +11,15 @@ dotenv.config();
 // Connect to MongoDB Database and auto-seed if empty
 connectDB().then(async () => {
   try {
+    const User = require('./models/User');
     const Phase = require('./models/Phase');
-    const count = await Phase.countDocuments();
+    const demoUser = await User.findOne({ email: 'tiruamballa@atr.com' });
+    let count = 0;
+    if (demoUser) {
+      count = await Phase.countDocuments({ userId: demoUser._id });
+    }
     if (count === 0) {
-      console.log('Database is empty! Triggering automatic seeding...');
+      console.log('Database has no records for the demo user! Triggering automatic seeding...');
       const seedDatabase = require('./seeds/roadmapSeed');
       await seedDatabase({ closeConnection: false });
     }

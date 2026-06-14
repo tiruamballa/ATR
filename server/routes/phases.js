@@ -12,6 +12,24 @@ const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+// Public seed route
+router.get('/seed-force', async (req, res, next) => {
+  try {
+    console.log('Force seeding database from route...');
+    const seedDatabase = require('../seeds/roadmapSeed');
+    await seedDatabase({ closeConnection: false });
+    res.status(200).json({
+      success: true,
+      message: 'Database seeded successfully via force route.'
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
 router.use(protect);
 
 router.route('/')
