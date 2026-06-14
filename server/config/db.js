@@ -7,6 +7,12 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 4000 // Timeout early to trigger fallback
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    try {
+      await mongoose.connection.db.collection('phases').dropIndex('monthIndex_1');
+      console.log('Successfully dropped stale index monthIndex_1');
+    } catch (err) {
+      // Ignore if it doesn't exist
+    }
   } catch (error) {
     console.warn(`MongoDB Connection failed: ${error.message}`);
     
@@ -22,6 +28,9 @@ const connectDB = async () => {
         
         const conn = await mongoose.connect(memoryUri);
         console.log(`In-Memory MongoDB Connected: ${conn.connection.host}`);
+        try {
+          await mongoose.connection.db.collection('phases').dropIndex('monthIndex_1');
+        } catch (err) {}
       } catch (memError) {
         console.error(`In-Memory MongoDB start failed: ${memError.message}`);
         process.exit(1);

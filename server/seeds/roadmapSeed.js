@@ -23,6 +23,12 @@ const seedDatabase = async (options = { closeConnection: true }) => {
       await connectDB();
     }
     console.log('DB connection established. Clearing ATR schemas...');
+    try {
+      await mongoose.connection.db.collection('phases').dropIndex('monthIndex_1');
+      console.log('Stale unique index monthIndex_1 dropped successfully inside seed script.');
+    } catch (err) {
+      // Ignore
+    }
 
     // Clear previous seeded items
     await Phase.deleteMany({});
